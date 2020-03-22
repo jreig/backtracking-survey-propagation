@@ -27,8 +27,11 @@ $(BUILD_DIR)/%.o: %.cpp
 	@echo "Compiling: $< -> $@"
 	@$(CXX) $(FLAGS) $(INCLUDE) -c $< -o $@
 
-clean:
-	-@rm -rvf $(BUILD_DIR)/*
+# Separated both clean (src and test) because compilation of test main.cpp
+# takes a lot more time than the rest of the code. As this file shouldn't change,
+# there is no need to delete its compiled obj file.
+# To force a test clean run 'make clean-test'.
+clean: clean-src
 
 # ------------------------------------------------------------------------------
 # Build and Run example
@@ -46,6 +49,11 @@ $(BUILD_DIR)/$(EX_TARGET): $(EX_OBJ)
 	
 run: 
 	@./$(BUILD_DIR)/$(EX_TARGET)
+
+clean-src:
+	-@rm -rvf $(BUILD_DIR)/${SRC_DIR}/*
+	-@rm -rvf $(BUILD_DIR)/${EX_DIR}/*
+	-@rm -rvf $(BUILD_DIR)/${EX_TARGET}
 
 # ------------------------------------------------------------------------------
 # Test
@@ -66,3 +74,6 @@ run-test: run-unit-test
 run-unit-test:
 	@./$(BUILD_DIR)/$(TEST_TARGET) [unit]
 
+clean-test:
+	-@rm -rvf $(BUILD_DIR)/${TEST_DIR}/*
+	-@rm -rvf $(BUILD_DIR)/${TEST_TARGET}
