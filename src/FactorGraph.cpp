@@ -9,7 +9,7 @@ namespace bsp {
 // Splits the string into token by the given delimiter
 // Return a vector with the tokens
 // -----------------------------------------------------------------------------
-const vector<string> SplitString(const string& s, const char delim = '\n') {
+const vector<string> SplitString(const string& s, const char delim = ' ') {
   stringstream stream(s);
   vector<string> tokens;
 
@@ -37,15 +37,14 @@ Edge::Edge(EdgeType type, Node* clausule, Node* literal)
 // -----------------------------------------------------------------------------
 // FactorGraph class
 // -----------------------------------------------------------------------------
-FactorGraph::FactorGraph(const string& dimacs) {
-  // Split the dimacs file content into lines
-  const vector<string> lines = SplitString(dimacs);
-
+FactorGraph::FactorGraph(ifstream& file) {
+  // Process each line of the dimacs file
   bool configured = false;
   int currentClausuleId = 0;
-  for (const string& line : lines) {
+  string line;
+  while (getline(file, line)) {
     // Split the lines into tokens
-    const vector<string> tokens = SplitString(line, ' ');
+    const vector<string> tokens = SplitString(line);
 
     // If first token is a 'c' ignore the line because is a comment
     if (tokens[0] == "c") continue;
@@ -75,7 +74,7 @@ FactorGraph::FactorGraph(const string& dimacs) {
     else {
       if (configured) {
         for (const string& token : tokens) {
-          if (token != "0") {
+          if (token != "0") {  // "0" means end of the clausule
             const int literalValue = stoi(token);
             // literals start from 1 and indices from 0
             const int literalId = abs(literalValue) - 1;
@@ -99,6 +98,9 @@ FactorGraph::FactorGraph(const string& dimacs) {
       }
     }
   }
+
+  // Close file
+  file.close();
 }
 
 FactorGraph::~FactorGraph() {

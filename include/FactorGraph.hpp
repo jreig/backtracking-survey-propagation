@@ -1,5 +1,6 @@
 #pragma once
 
+#include <fstream>
 #include <iostream>
 #include <sstream>
 #include <string>
@@ -64,7 +65,7 @@ class FactorGraph {
   std::vector<Node*> literals;
   std::vector<Edge*> edges;
 
-  explicit FactorGraph(const std::string& dimacs);
+  explicit FactorGraph(std::ifstream& file);
   ~FactorGraph();
 
   void Print();
