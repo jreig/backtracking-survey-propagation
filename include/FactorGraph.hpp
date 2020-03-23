@@ -65,5 +65,8 @@ class FactorGraph {
   std::vector<Edge*> edges;
 
   explicit FactorGraph(const std::string& dimacs);
+  ~FactorGraph();
+
+  void Print();
 };
 }  // namespace bsp

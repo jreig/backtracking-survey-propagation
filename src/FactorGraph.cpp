@@ -45,7 +45,7 @@ FactorGraph::FactorGraph(const string& dimacs) {
   int currentClausuleId = 0;
   for (const string& line : lines) {
     // Split the lines into tokens
-    const vector<string> tokens = SplitString(line);
+    const vector<string> tokens = SplitString(line, ' ');
 
     // If first token is a 'c' ignore the line because is a comment
     if (tokens[0] == "c") continue;
@@ -75,23 +75,45 @@ FactorGraph::FactorGraph(const string& dimacs) {
     else {
       if (configured) {
         for (const string& token : tokens) {
-          const int literalValue = stoi(token);
-          const int literalId = abs(literalValue);
+          if (token != "0") {
+            const int literalValue = stoi(token);
+            // literals start from 1 and indices from 0
+            const int literalId = abs(literalValue) - 1;
 
-          // Create an edge
-          EdgeType type = (literalValue < 0) ? NEGATIVE : POSITIVE;
-          Node* clausule = clausules[currentClausuleId];
-          Node* literal = literals[literalId];
+            // Create an edge
+            EdgeType type = (literalValue < 0) ? NEGATIVE : POSITIVE;
+            Node* clausule = clausules[currentClausuleId];
+            Node* literal = literals[literalId];
 
-          Edge* edge = new Edge(type, clausule, literal);
-          edges.push_back(edge);
+            Edge* edge = new Edge(type, clausule, literal);
+            edges.push_back(edge);
 
-          // Connect clausules and literals with the edge
-          clausule->AddNeighbourEdge(edge);
-          literal->AddNeighbourEdge(edge);
+            // Connect clausules and literals with the edge
+            clausule->AddNeighbourEdge(edge);
+            literal->AddNeighbourEdge(edge);
+          }
         }
+
+        // Next clausule
+        currentClausuleId += 1;
       }
     }
   }
 }
+
+FactorGraph::~FactorGraph() {
+  for (const Node* clausule : clausules) delete clausule;
+  for (const Node* literal : literals) delete literal;
+  for (const Edge* edge : edges) delete edge;
+}
+
+void FactorGraph::Print() {
+  cout << "FactorGraph Edges:" << endl;
+  for (const Edge* edge : edges) {
+    cout << (char)(edge->clausule->id + 'a') << " ---> "
+         << ((edge->type == NEGATIVE) ? "¬" : "") << edge->literal->id + 1
+         << endl;
+  }
+}
+
 }  // namespace bsp
