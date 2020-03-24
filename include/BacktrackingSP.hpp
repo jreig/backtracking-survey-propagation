@@ -10,24 +10,21 @@
 
 namespace bsp {
 
-enum BSPResult { UNCONVERGED, SAT, UNSAT, ERROR };
+enum BSPResult { UNCONVERGED, CONVERGED, ERROR };
 
 class BacktrackingSP {
  public:
   FactorGraph* graph;
   float threshold;
-  clock_t maxTime;
+  int maxIterations;
 
  public:
-  explicit BacktrackingSP(std::ifstream& file, float threshold, int maxSeconds);
-  explicit BacktrackingSP(std::string route, float threshold, int maxSeconds);
+  explicit BacktrackingSP(float threshold, int maxSeconds);
   ~BacktrackingSP();
 
-  BSPResult IsSAT();
+  BSPResult BSP(std::ifstream& file);
 
  private:
-  void InitParams(std::ifstream& file, float threshold, int maxSeconds);
-
   void UpdateSurvey(Edge* edge);
 };
 
