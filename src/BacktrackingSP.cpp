@@ -61,6 +61,7 @@ BSPResult BacktrackingSP::BSP(ifstream& file) {
     }
 
     converged = allConverged;
+    i++;
   };
 
   t = clock() - t;
@@ -106,6 +107,7 @@ void BacktrackingSP::UpdateSurvey(Edge* ai) {
   }
 
   // update a->i survey
+  cout << Sai << endl;
   ai->survey = Sai;
 };
 
