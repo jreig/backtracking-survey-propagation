@@ -1,16 +1,15 @@
+#include <BSPSolver.hpp>
+#include <FactorGraph.hpp>
 #include <fstream>
 #include <iostream>
 
-#include <BacktrackingSP.hpp>
-#include <FactorGraph.hpp>
-
 using namespace std;
+using namespace bsp;
 
 int main() {
-  ifstream file("./examples/cnf-files/1.cnf");
-
-  bsp::BacktrackingSP solver(0.001f, 10000);
-  bsp::BSPResult result = solver.BSP(file);
+  BSPSolver solver(BSPSolver::DEFAULT_EPSILON,
+                   BSPSolver::DEFAULT_MAX_ITERATIONS, 1234);
+  BSPResult result = solver.SID("./examples/cnf-files/1.cnf");
 
   cout << "Result: " << result << endl;
 

@@ -1,10 +1,9 @@
+#include <BSPSolver.hpp>
 #include <catch2/catch.hpp>
 #include <string>
 
-#include <BacktrackingSP.hpp>
-
-TEST_CASE("BacktrackingSP - fake unit test", "[unit]") {
-  bsp::BacktrackingSP solver(0.001f, 1000);
+TEST_CASE("BSPSolver - fake unit test", "[unit]") {
+  bsp::BSPSolver solver(0.001f, 1000, 1234);
 
   REQUIRE(true);
 };
