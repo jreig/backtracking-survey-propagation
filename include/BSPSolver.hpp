@@ -122,7 +122,7 @@ class BSPSolver {
   // Evaluate a node of the factor graph with equations 28,29,30 and 31.
   // Return the evaluation value v = (Wi+) - (Wi-) (WITH sign).
   // ---------------------------------------------------------------------------
-  float EvaluateVariable(Node* variable);
+  float EvaluateVariable(Variable* variable);
 };
 
 }  // namespace bsp

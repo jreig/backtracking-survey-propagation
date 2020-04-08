@@ -191,7 +191,7 @@ void BSPSolver::UpdateSurvey(Edge* ai) {
   ai->survey = Sai;
 };
 
-float BSPSolver::EvaluateVariable(Node* variable) {
+float BSPSolver::EvaluateVariable(Variable* variable) {
   // Vi  = V(i)  -> Subset of clausules where the variable i appears
   // ViP = V+(i) -> substed of V(i) where i appears unnegated
   // ViN = V-(i) -> substed of V(i) where i appears negated
