@@ -2,147 +2,164 @@
 
 #include <fstream>
 #include <iostream>
-#include <stack>
-#include <string>
 #include <vector>
 
-namespace bsp {
-
-enum NodeType { CLAUSULE, VARIABLE };
-enum EdgeType { POSITIVE, NEGATIVE };
+namespace sat {
 
 // Declarations to avoid circular dependencies
-class FactorGraph;
-class Node;
+struct AssignmentStep;
 class Edge;
-
-// =============================================================================
-// Node
-//
-// Each Node represents a variable or a clausule of the Factor Graph and has a
-// list of its neighboring edges, that is, those edges that connect to the node.
-// If the node is not enabled it can't be accessed through connecting edges.
-// =============================================================================
-class Node {
-  friend class FactorGraph;
-
- public:
-  const unsigned id;
-  const NodeType type;
-
- protected:
-  std::vector<Edge*> _allNeighbourEdges;
-
- public:
-  // ---------------------------------------------------------------------------
-  // Node constructor
-  //
-  // - id: Id of the node in base 0
-  // - type: Type of the node (clausule or variable)
-  // ---------------------------------------------------------------------------
-  Node(const unsigned id, const NodeType type);
-
-  // ---------------------------------------------------------------------------
-  // AddNeighbourEdge
-  //
-  // Add an edge to the neighbour edges list, no matter if enabled or not
-  // ---------------------------------------------------------------------------
-  void AddNeighbourEdge(Edge* edge);
-
-  // ---------------------------------------------------------------------------
-  // GetNeighbourEdges
-  //
-  // Get only the enabled edges that connect to the node
-  // ---------------------------------------------------------------------------
-  std::vector<Edge*> GetNeighbourEdges() const;
-};
+class FactorGraph;
 
 // =============================================================================
 // Variable
 //
-// Class to represent a variable in the graph, it's a type of Node.
-// Can be assigned with a value (true, false).
+// Class to represent a variable in the graph.
+// Can be assigned with a value (true, false) and store an evaluation value.
+// Has a vector of neighbour edges that connects the variable with all clausules
+// where it appears.
 // =============================================================================
-class Variable : public Node {
+class Variable {
   friend class FactorGraph;
 
  public:
+  const unsigned id;
+  float evalValue;
+
   // Read-only variables pointing to its private values
   // The linking is done in the constructor
   const bool& assigned;
   const bool& value;
 
  private:
-  // Can only be enabled/disabled by FactorGraph
   bool _assigned = false;
   bool _value = false;
+
+  std::vector<Edge*> _allNeighbourEdges;
 
  public:
   // ---------------------------------------------------------------------------
   // Variable constructor
   //
-  // Initialices a Node with the id and type VARIABLE. Link the read-only values
+  // Initialices a Variable with the id. Links the read-only values
   // to the private ones to provide with more easy use of the class and avoid
   // external modifications
   // ---------------------------------------------------------------------------
   explicit Variable(const unsigned id);
 
   // ---------------------------------------------------------------------------
+  // GetEnabledEdges
+  //
+  // Get only the enabled edges that connect to the node
+  // ---------------------------------------------------------------------------
+  std::vector<Edge*> GetEnabledEdges();
+
+  // ---------------------------------------------------------------------------
+  // AssignValue
+  //
+  // Sets _assigned to true and _value to the new value. An AssigmentStep can be
+  // provided to keep track of the assignments.
+  // ---------------------------------------------------------------------------
+  void AssignValue(const bool newValue,
+                   AssignmentStep* assignmentStep = nullptr);
+
+  // ---------------------------------------------------------------------------
+  // Unassign
+  //
+  // Sets _assigned to false. Used to revert an assignment when backtracking
+  // ---------------------------------------------------------------------------
+  inline void Unassign() { _assigned = false; }
+
+  // ---------------------------------------------------------------------------
   // operator<<
   //
-  // X{id + 1}: [{value}|NOT_ASSIGNED]
+  // X{id}: [{value}|NOT_ASSIGNED]
   // ---------------------------------------------------------------------------
-  friend std::ostream& operator<<(std::ostream& os, const Variable* var);
+  // friend std::ostream& operator<<(std::ostream& os, const Variable* var);
 };
 
 // =============================================================================
 // Clausule
 //
-// Class to represent a clausule in the graph, it's a type of Node.
-// Can be evaluated.
+// Class to represent a clausule in the graph.
+// Has a vector of neighbour edges that connects the clausule with all variables
+// that appear in it.
 // =============================================================================
-class Clausule : public Node {
+class Clausule {
   friend class FactorGraph;
 
  public:
+  const unsigned id;
+
   // Read-only variable pointing to its private value
   // The linking is done in the constructor
   const bool& enabled;
 
  private:
-  // Can only be enabled/disabled by FactorGraph
   bool _enabled = true;
+
+  std::vector<Edge*> _allNeighbourEdges;
 
  public:
   // ---------------------------------------------------------------------------
   // Clausule constructor
   //
-  // Initialices a Node with an id and type CLAUSULE.
+  // Initialices a Node with an id. Links the read-only values
+  // to the private ones to provide with more easy use of the class and avoid
+  // external modifications
   // ---------------------------------------------------------------------------
   explicit Clausule(const unsigned id);
 
   // ---------------------------------------------------------------------------
+  // GetEnabledEdges
+  //
+  // Get only the enabled edges that connect to the node
+  // ---------------------------------------------------------------------------
+  std::vector<Edge*> GetEnabledEdges();
+
+  // ---------------------------------------------------------------------------
+  // Dissable
+  //
+  // Dissable the clausule and all its neighbour edges
+  // ---------------------------------------------------------------------------
+  void Dissable(AssignmentStep* assignmentStep = nullptr);
+
+  // ---------------------------------------------------------------------------
+  // Enable
+  //
+  // Enable ONLY the clausule, not its neighbour edges
+  // ---------------------------------------------------------------------------
+  inline void Enable() { _enabled = true; }
+
+  // ---------------------------------------------------------------------------
+  // IsSAT
+  //
+  // Check that the clausule contains an assigned variable that satisfies it
+  // ---------------------------------------------------------------------------
+  bool IsSAT() const;
+
+  // ---------------------------------------------------------------------------
   // operator<<
   //
-  // {id char}: N variables - [ENABLED|DISABLED]
+  // C{id}: N variables - [ENABLED|DISABLED]
   // ---------------------------------------------------------------------------
-  friend std::ostream& operator<<(std::ostream& os, const Clausule* c);
+  // friend std::ostream& operator<<(std::ostream& os, const Clausule* c);
 };
 
 // =============================================================================
 // Edge
 //
 // Each Edge represent a connection between a variable and a clausule.
-// It's negative if the variable appears negated in the clausule, positive
+// Can store a survey value.
+// Type is false if the variable appears negated in the clausule, true
 // otherwise.
 // =============================================================================
 class Edge {
-  friend class FactorGraph;
-
  public:
-  EdgeType type;
+  const bool type;
   Clausule* clausule;
   Variable* variable;
+
   float survey;
 
   // Read-only variable pointing to its private value
@@ -150,35 +167,47 @@ class Edge {
   const bool& enabled;
 
  private:
-  // Can only be enabled/disabled by FactorGraph
   bool _enabled = true;
 
  public:
   // ---------------------------------------------------------------------------
   // Edge constructor
   //
-  // - type: Type of the edge. Negative means that the variable appears negated
-  //         in the clausule.
-  // - clausule: Pointer to one node of the edge
-  // - variable: Pointer to the other node of the edge
+  // Initialices an Edge with type, clausule and variable. Links the read-only
+  // values to the private ones to provide with more easy use of the class
+  // and avoid external modifications
   // ---------------------------------------------------------------------------
-  Edge(EdgeType type, Clausule* clausule, Variable* variable);
+  Edge(bool type, Clausule* clausule, Variable* variable);
+
+  // ---------------------------------------------------------------------------
+  // Dissable
+  //
+  // Dissable the edge
+  // ---------------------------------------------------------------------------
+  void Dissable(AssignmentStep* assignmentStep = nullptr);
+
+  // ---------------------------------------------------------------------------
+  // Enable
+  //
+  // Enable the edge
+  // ---------------------------------------------------------------------------
+  inline void Enable() { _enabled = true; }
 
   // ---------------------------------------------------------------------------
   // operator<<
   //
-  // {clau.id char} <---> [¬]X{var.id + 1} - [ENABLED|DISABLED]
+  // C{clau.id} <---> [¬]X{var.id} - [ENABLED|DISABLED] ({survey})
   // ---------------------------------------------------------------------------
-  friend std::ostream& operator<<(std::ostream& os, const Edge* e);
+  // friend std::ostream& operator<<(std::ostream& os, const Edge* e);
 };
 
 // =============================================================================
-// BacktrackingStep
+// AssignmentStep
 //
-// Store the modifications done by an assigment to be able to revert them.
+// Store the modifications done to the graph to be able to revert them.
 // =============================================================================
-struct BactrackingStep {
-  Variable* variable;
+struct AssignmentStep {
+  std::vector<Variable*> variables;
   std::vector<Clausule*> clausules;
   std::vector<Edge*> edges;
 };
@@ -190,29 +219,17 @@ struct BactrackingStep {
 // valid DIMACS CNF file.
 // =============================================================================
 class FactorGraph {
- public:
-  // Read-only variable pointing to its private value
-  // The linking is done in the constructor
-  const unsigned& NTotalClausules;
-  const unsigned& NTotalVariables;
-  const unsigned& NTotalEdges;
-
  private:
-  unsigned _NTotalClausules = 0;
-  unsigned _NTotalVariables = 0;
-  unsigned _NTotalEdges = 0;
-
-  std::vector<Clausule*> _clausules;
   std::vector<Variable*> _variables;
+  std::vector<Clausule*> _clausules;
   std::vector<Edge*> _edges;
-
-  std::stack<BactrackingStep> _bactrackingSteps;
+  std::vector<AssignmentStep*> _assignmentSteps;
 
  public:
   // ---------------------------------------------------------------------------
   // FactorGraph constructor
   //
-  // - file: Open ifstream of the DIMACS file with a valid CNF
+  // Build the Variables, Clausules and Edges of the CNF
   // ---------------------------------------------------------------------------
   explicit FactorGraph(std::ifstream& file);
   ~FactorGraph();
@@ -220,32 +237,42 @@ class FactorGraph {
   // ---------------------------------------------------------------------------
   // Getters
   // ---------------------------------------------------------------------------
-  std::vector<Clausule*> GetClausules() const;
-  std::vector<Variable*> GetVariables() const;
-  std::vector<Edge*> GetEdges() const;
+  inline std::vector<Variable*> GetAllVariables() { return _variables; }
+  inline std::vector<Clausule*> GetAllClausules() { return _clausules; }
+  inline std::vector<Edge*> GetAllEdges() { return _edges; }
+
+  std::vector<Variable*> GetUnassignedVariables();
+  std::vector<Clausule*> GetEnabledClausules();
+  std::vector<Edge*> GetEnabledEdges();
+
+  // ---------------------------------------------------------------------------
+  // IsSat
+  //
+  // If all variables are asigned, check that all clausules have a variable that
+  // satisfies it
+  // ---------------------------------------------------------------------------
+  bool IsSAT() const;
+
+  // ---------------------------------------------------------------------------
+  // StoreAssignmentStep
+  //
+  // Store an assignment step
+  // ---------------------------------------------------------------------------
+  void StoreAssignmentStep(AssignmentStep* step);
+
+  // ---------------------------------------------------------------------------
+  // RevertLastAssigment
+  //
+  // Unassign the last assigned variables and enable all clausules and edges
+  // that were disabled.
+  // ---------------------------------------------------------------------------
+  void RevertLastAssigment();
 
   // ---------------------------------------------------------------------------
   // operator<<
   //
   // Assigned Variables: N/N - Satisfied Clausules: N/N
   // ---------------------------------------------------------------------------
-  friend std::ostream& operator<<(std::ostream& os, const FactorGraph* fg);
-
-  // ---------------------------------------------------------------------------
-  // AssignVariable
-  //
-  // Assign a value to a variable and clean the graph, which means to dissable
-  // the clauses satisfied by this assignment and to reduce the clauses
-  // (dissable edges) that involve the assigned variable with opposite literal.
-  // ---------------------------------------------------------------------------
-  void AssignVariable(Variable* variable, bool value);
-
-  // ---------------------------------------------------------------------------
-  // RevertLastAssigment
-  //
-  // Unassign the last assigned variable and enable all clausules and edges
-  // that were disabled because of the assigment
-  // ---------------------------------------------------------------------------
-  void RevertLastAssigment();
+  // friend std::ostream& operator<<(std::ostream& os, const FactorGraph* fg);
 };
-}  // namespace bsp
+}  // namespace sat

@@ -2,24 +2,28 @@
 # Project
 # ------------------------------------------------------------------------------
 
-CXX 				= g++
-FLAGS 			= -g -Wall -std=c++11
-BUILD_DIR 	= build
-SRC_DIR 		= src
-INCLUDE			= -I include/ -I libs/
-EX_DIR			= examples
-TEST_DIR		= test
+CXX 						= g++
+FLAGS 					= -g -Wall -std=c++17
+BUILD_DIR 			= build
+SRC_DIR 				= src
+INCLUDE					= -I include/ -I libs/
+EXP_DIR					= experiments
+EXP_INST_DIR 		= ${EXP_DIR}/instances
+EXP_RESULT_DIR 	= ${EXP_DIR}/result
+TEST_DIR				= test
 
 SRC	= $(wildcard $(SRC_DIR)/*.cpp)
 
-.PHONY: clean build-dir run run-unit-test
+.PHONY: clean build-dir run-experiments run-unit-test run-integration-test
 
 all: build 
 
-build: build-dir build-example build-test
+build: build-dir build-experiments build-test
 
 build-dir:
 	@mkdir -p $(BUILD_DIR)
+	@mkdir -p $(EXP_INST_DIR)
+	@mkdir -p $(EXP_RESULT_DIR)
 
 # general obj files compilation
 $(BUILD_DIR)/%.o: %.cpp
@@ -31,29 +35,32 @@ $(BUILD_DIR)/%.o: %.cpp
 # takes a lot more time than the rest of the code. As this file shouldn't change,
 # there is no need to delete its compiled obj file.
 # To force a test clean run 'make clean-test'.
+# To force clean all run 'make clean-all'
 clean: clean-src
 
+clean-all: clean-test clean-src
+
 # ------------------------------------------------------------------------------
-# Build and Run example
+# Build and Run experiments
 # ------------------------------------------------------------------------------
 
-EX_TARGET		= example
-EX_SRC			= ${SRC} $(wildcard $(EX_DIR)/*.cpp)
-EX_OBJ 			= $(EX_SRC:%.cpp=$(BUILD_DIR)/%.o) 
+EXP_TARGET	= experiment
+EXP_SRC			= ${SRC} $(wildcard $(EXP_DIR)/*.cpp)
+EXP_OBJ 		= $(EXP_SRC:%.cpp=$(BUILD_DIR)/%.o) 
 
-build-example: $(BUILD_DIR)/$(EX_TARGET)
-	@echo "DONE: Compiled '${EX_TARGET}' successsfully"
+build-experiments: $(BUILD_DIR)/$(EXP_TARGET)
+	@echo "DONE: Compiled '${EXP_TARGET}' successsfully"
 
-$(BUILD_DIR)/$(EX_TARGET): $(EX_OBJ)
+$(BUILD_DIR)/$(EXP_TARGET): $(EXP_OBJ)
 	$(CXX) $(FLAGS) $^ -o $@
 	
-run: 
-	@./$(BUILD_DIR)/$(EX_TARGET)
+run-experiments: 
+	@./$(BUILD_DIR)/$(EXP_TARGET)
 
 clean-src:
 	-@rm -rvf $(BUILD_DIR)/${SRC_DIR}/*
-	-@rm -rvf $(BUILD_DIR)/${EX_DIR}/*
-	-@rm -rvf $(BUILD_DIR)/${EX_TARGET}
+	-@rm -rvf $(BUILD_DIR)/${EXP_DIR}/*
+	-@rm -rvf $(BUILD_DIR)/${EXP_TARGET}
 
 # ------------------------------------------------------------------------------
 # Test
@@ -69,7 +76,10 @@ build-test: $(BUILD_DIR)/$(TEST_TARGET)
 $(BUILD_DIR)/$(TEST_TARGET): ${TEST_OBJ}
 	$(CXX) $(FLAGS) $^ -o $@
 
-run-test: run-unit-test
+run-test: run-unit-test run-integration-test
+
+run-integration-test:
+	@./${BUILD_DIR}/$(TEST_TARGET) [integration]
 
 run-unit-test:
 	@./$(BUILD_DIR)/$(TEST_TARGET) [unit]
