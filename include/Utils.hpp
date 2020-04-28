@@ -28,4 +28,10 @@ inline float getRandomReal01() { return randomReal01UD(randomGenerator); }
 const std::vector<std::string> SplitString(const std::string& s,
                                            const char delim = ' ');
 
+// =============================================================================
+// Metrics
+// =============================================================================
+static int currentSPIterations = 0;
+static int totalSPIterations = 0;
+
 }  // namespace sat::utils

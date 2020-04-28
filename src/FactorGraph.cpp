@@ -211,19 +211,19 @@ void FactorGraph::RevertLastAssigment() {
   for (Edge* edge : lastStep->edges) edge->Enable();
 }
 
-// std::ostream& operator<<(std::ostream& os, const FactorGraph* fg) {
-//   unsigned totalVariables = fg->_variables.size();
-//   unsigned assignedVariables =
-//       totalVariables - fg->GetUnassignedVariables().size();
+std::ostream& operator<<(std::ostream& os, FactorGraph* fg) {
+  unsigned totalVariables = fg->_variables.size();
+  unsigned assignedVariables =
+      totalVariables - fg->GetUnassignedVariables().size();
 
-//   unsigned totalClausules = fg->_clausules.size();
-//   unsigned satClausules = totalClausules - fg->GetEnabledClausules().size();
+  unsigned totalClausules = fg->_clausules.size();
+  unsigned satClausules = totalClausules - fg->GetEnabledClausules().size();
 
-//   os << "Assigned Variables: ";
-//   os << assignedVariables << "/" << totalVariables;
-//   os << " - Satisfied Clausules: ";
-//   os << satClausules << "/" << totalClausules;
-//   return os;
-// }
+  os << "Assigned Variables: ";
+  os << assignedVariables << "/" << totalVariables;
+  os << " - Satisfied Clausules: ";
+  os << satClausules << "/" << totalClausules;
+  return os;
+}
 
 }  // namespace sat

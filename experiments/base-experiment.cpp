@@ -1,10 +1,12 @@
 #include <iostream>
+#include <sstream>
 #include <string>
 #include <vector>
 
 // Project includes
 #include <Algorithms.hpp>
 #include <FactorGraph.hpp>
+#include <Utils.hpp>
 
 using namespace std;
 
@@ -17,9 +19,18 @@ using namespace std;
 // ---------------------------------------------------------------------------
 vector<string> GenerateRandomCNF(int totalInstances, int N, float alpha) {
   vector<string> paths;
+  // cout << "Generating " << totalInstances << " random 3-SAT CNF
+  // instances...";
 
-  cout << "Generating " << totalInstances << " random 3-SAT CNF instances...";
-  cout << " - Done! (TODO)" << endl;
+  for (int i = 1; i <= totalInstances; i++) {
+    ostringstream ss;
+    string dir = "experiments/instances/";
+    ss << dir << "random_3SAT_" << N << "N_" << alpha << "R_" << i << ".cnf";
+    string path = ss.str();
+    paths.push_back(path);
+  }
+
+  // cout << " - Done! (PREGENERATED)" << endl;
 
   return paths;
 }
@@ -49,16 +60,15 @@ int main() {
   cout << endl;
 
   // ---------------------------------------------------------------------------
-  // Set up experiment result file
-  //
-  // TODO
+  // Set up experimen
   // ---------------------------------------------------------------------------
   cout << "Setting up experiment environment...";
 
   sat::ParamsSP defaultParamsSP;
   sat::ParamsWalksat defaultParamsWalksat;
+  sat::utils::randomGenerator.seed(1234);
 
-  cout << "- Done! (TODO)" << endl;
+  cout << " - Done!" << endl;
 
   // ---------------------------------------------------------------------------
   // Run experiments
@@ -66,6 +76,10 @@ int main() {
   int experimentId = 1;
   for (int totalVariables : totalVariablesParams) {
     for (float alpha : alphaParams) {
+      // Get random CNF instances
+      vector<string> paths =
+          GenerateRandomCNF(totalCnfInstances, totalVariables, alpha);
+
       for (float fraction : fractionParams) {
         cout << endl << endl;
         cout << "------------------------------" << endl;
@@ -75,21 +89,24 @@ int main() {
         cout << " - f: " << fraction << endl;
         cout << "------------------------------" << endl;
 
-        // Get random CNF instances
-        vector<string> paths =
-            GenerateRandomCNF(totalCnfInstances, totalVariables, alpha);
-
         int totalSATInstances = 0;
-        int totalSPIterations = 0;
-
+        sat::utils::totalSPIterations = 0;
         for (string path : paths) {
-          // std::ifstream file(path);
-          // sat::FactorGraph* graph = new sat::FactorGraph(file);
-          bool result = true;
-          // bool result = sat::SID(graph, fraction, defaultParamsSP,
-          // defaultParamsWalksat);
+          std::ifstream file(path);
+          if (!file.is_open()) {
+            cerr << "ERROR: Can't open file " << path << endl;
+            break;
+          } else {
+            cout << "Solving file " << path << endl;
+          }
 
+          sat::FactorGraph* graph = new sat::FactorGraph(file);
+
+          bool result =
+              sat::SID(graph, fraction, defaultParamsSP, defaultParamsWalksat);
           if (result) totalSATInstances++;
+
+          delete graph;
         }
 
         // Results
@@ -98,7 +115,8 @@ int main() {
         cout << "Results:" << endl;
         cout << " SAT instances: ";
         cout << totalSATInstances << " (" << satInstPercent << "%)" << endl;
-        cout << " Total SP it. in SAT instances: " << totalSPIterations << endl;
+        cout << " Total SP it. in SAT instances: "
+             << sat::utils::totalSPIterations << endl;
 
         // increase experiment id
         experimentId++;

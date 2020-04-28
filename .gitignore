@@ -34,3 +34,7 @@ build/
 
 # Visual Code
 .vscode/
+
+# Experiments
+experiments/instances/
+experiments/result/

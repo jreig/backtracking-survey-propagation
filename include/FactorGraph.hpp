@@ -273,6 +273,6 @@ class FactorGraph {
   //
   // Assigned Variables: N/N - Satisfied Clausules: N/N
   // ---------------------------------------------------------------------------
-  // friend std::ostream& operator<<(std::ostream& os, const FactorGraph* fg);
+  friend std::ostream& operator<<(std::ostream& os, FactorGraph* fg);
 };
 }  // namespace sat

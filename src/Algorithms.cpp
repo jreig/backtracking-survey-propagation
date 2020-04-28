@@ -37,6 +37,9 @@ bool SurveyPropagation(FactorGraph* graph, ParamsSP params) {
           std::abs(edge->survey - previousSurveyValue) < params.epsilon;
       if (!hasConverged) allEdgesConverged = false;
     }
+
+    // Update metrics
+    utils::currentSPIterations++;
   }
 
   return allEdgesConverged;
@@ -236,13 +239,19 @@ bool Walksat(FactorGraph* graph, ParamsWalksat params,
 // -----------------------------------------------------------------------------
 bool SID(FactorGraph* graph, float fraction, ParamsSP paramsSP,
          ParamsWalksat paramsWalksat) {
+  // Start metrics
+  utils::currentSPIterations = 0;
+
   while (!graph->IsSAT()) {
     // 1. Run UNIT PROPAGTION
     bool UPResult = UnitPropagation(graph);
     // If a contradiction in found, return false
     if (!UPResult) return false;
     // If SAT, return true.
-    if (graph->IsSAT()) return true;
+    if (graph->IsSAT()) {
+      utils::totalSPIterations += utils::currentSPIterations;
+      return true;
+    }
 
     // 2. Run SP. If does not converge return false.
     bool SPResult = SurveyPropagation(graph, paramsSP);
@@ -285,8 +294,11 @@ bool SID(FactorGraph* graph, float fraction, ParamsSP paramsSP,
         }
       }
     }
+
+    std::cout << graph << std::endl;
   };
 
+  utils::totalSPIterations += utils::currentSPIterations;
   return true;
 }
 
