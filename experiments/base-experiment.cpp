@@ -47,16 +47,29 @@ int main() {
   //
   // TODO: Crete config file to avoid rebuild
   // ---------------------------------------------------------------------------
-  int totalVariablesParams[3] = {25000, 50000, 100000};
-  float alphaParams[4] = {4.21f, 4.22f, 4.23f, 4.24f};
-  float fractionParams[6] = {0.04f, 0.02f, 0.01f, 0.005f, 0.0025f, 0.00125f};
+  // int totalVariablesParams[3] = {25000, 50000, 100000};
+  // float alphaParams[4] = {4.21f, 4.22f, 4.23f, 4.24f};
+  // float fractionParams[6] = {0.04f, 0.02f, 0.01f, 0.005f, 0.0025f, 0.00125f};
+
+  // int totalCnfInstances = 50;
+
+  // cout << "Experiment parameters:" << endl;
+  // cout << " - N (variables) = 25000, 50000, 100000" << endl;
+  // cout << " - α (clausules/variables ratio) = 4.21, 4.22, 4.23, 4.24" <<
+  // endl; cout << " - f (assignment fraction) = 4%, 2%, 1%, .5%, .25%, .125%"
+  // << endl; cout << endl;
+
+  // FIXME! Hardcode first experiment
+  int totalVariablesParams[1] = {25000};
+  float alphaParams[1] = {4.21f};
+  float fractionParams[1] = {0.04f};
 
   int totalCnfInstances = 50;
 
   cout << "Experiment parameters:" << endl;
-  cout << " - N (variables) = 25000, 50000, 100000" << endl;
-  cout << " - α (clausules/variables ratio) = 4.21, 4.22, 4.23, 4.24" << endl;
-  cout << " - f (assignment fraction) = 4%, 2%, 1%, .5%, .25%, .125%" << endl;
+  cout << " - N (variables) = 25000" << endl;
+  cout << " - α (clausules/variables ratio) = 4.21" << endl;
+  cout << " - f (assignment fraction) = 4%" << endl;
   cout << endl;
 
   // ---------------------------------------------------------------------------
@@ -104,7 +117,12 @@ int main() {
 
           bool result =
               sat::SID(graph, fraction, defaultParamsSP, defaultParamsWalksat);
-          if (result) totalSATInstances++;
+          if (result) {
+            totalSATInstances++;
+            cout << "Solved: SAT" << endl;
+          } else {
+            cout << "Solved: - UNSAT" << endl;
+          }
 
           delete graph;
         }

@@ -246,7 +246,10 @@ bool SID(FactorGraph* graph, float fraction, ParamsSP paramsSP,
     // 1. Run UNIT PROPAGTION
     bool UPResult = UnitPropagation(graph);
     // If a contradiction in found, return false
-    if (!UPResult) return false;
+    if (!UPResult) {
+      std::cout << "UP found a contradiction" << std::endl;
+      return false;
+    }
     // If SAT, return true.
     if (graph->IsSAT()) {
       utils::totalSPIterations += utils::currentSPIterations;
@@ -255,7 +258,10 @@ bool SID(FactorGraph* graph, float fraction, ParamsSP paramsSP,
 
     // 2. Run SP. If does not converge return false.
     bool SPResult = SurveyPropagation(graph, paramsSP);
-    if (!SPResult) return false;
+    if (!SPResult) {
+      std::cout << "SP don't converge" << std::endl;
+      return false;
+    }
 
     // 3. Decimate
     // 3.1 If all surveys are trivial, return WALKSAT result
@@ -266,10 +272,15 @@ bool SID(FactorGraph* graph, float fraction, ParamsSP paramsSP,
         break;
       }
     }
-    if (allTrivial) return Walksat(graph, paramsWalksat);
+    if (allTrivial) {
+      bool walksatResult = Walksat(graph, paramsWalksat);
+      if (!walksatResult)
+        std::cout << "Walksat can't found a solution" << std::endl;
+      return walksatResult;
+    }
 
-    // 2.2 Otherwise, evaluate all variables, assign a set of them and clean the
-    // graph
+    // 2.2 Otherwise, evaluate all variables, assign a set of them and clean
+    // the graph
     std::vector<Variable*> unassignedVariables =
         graph->GetUnassignedVariables();
     for (Variable* variable : unassignedVariables) {

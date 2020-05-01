@@ -8,7 +8,7 @@ namespace sat {
 // Survey Propagation
 // -----------------------------------------------------------------------------
 struct ParamsSP {
-  uint maxIterations = 100;
+  uint maxIterations = 1000;
   float epsilon = 0.001f;
 };
 bool SurveyPropagation(FactorGraph* graph, ParamsSP params);
@@ -26,7 +26,7 @@ bool UnitPropagation(FactorGraph* graph, AssignmentStep* assignment = nullptr);
 struct ParamsWalksat {
   uint maxTries = 100;
   uint maxFlips = 100;
-  float noise = 0.5f;
+  float noise = 0.54f;
 };
 bool Walksat(FactorGraph* graph, ParamsWalksat params,
              AssignmentStep* assignment = nullptr);
