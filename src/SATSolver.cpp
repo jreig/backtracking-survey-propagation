@@ -160,7 +160,7 @@
 //   float Sai = 1.0f;
 
 //   // For each a->j when j != i
-//   for (Edge* aj : ai->clausule->GetNeighbourEdges()) {
+//   for (Edge* aj : ai->clause->GetNeighbourEdges()) {
 //     if (aj == ai) continue;  // j == i
 
 //     // Product values initalization for all b->j survey values
@@ -198,7 +198,7 @@
 // };
 
 // float SATSolver::EvaluateVariable(Variable* variable) {
-//   // Vi  = V(i)  -> Subset of clausules where the variable i appears
+//   // Vi  = V(i)  -> Subset of clauses where the variable i appears
 //   // ViP = V+(i) -> substed of V(i) where i appears unnegated
 //   // ViN = V-(i) -> substed of V(i) where i appears negated
 //   // Product values initialization for all a->i survey values
@@ -209,11 +209,11 @@
 //   // For each a->i
 //   for (Edge* ai : variable->GetNeighbourEdges()) {
 //     if (ai->type == POSITIVE) {
-//       // Update PViP if variable i appears unnegated in clausule a
+//       // Update PViP if variable i appears unnegated in clause a
 //       PViP = PViP * (1 - ai->survey);
 //     }
 //     if (ai->type == NEGATIVE) {
-//       // Update PViN if variable i appears negated in clausule a
+//       // Update PViN if variable i appears negated in clause a
 //       PViN = PViN * (1 - ai->survey);
 //     }
 

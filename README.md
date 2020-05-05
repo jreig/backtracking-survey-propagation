@@ -36,22 +36,22 @@ A FactorGraph is initialized from a DIMACS file and contains the following compo
 **Variable** -
 Represents a variable of the CNF. Has a unique identifier and can be assigned
 to a value (true|false). It contains a list of Edges that connect the variable to
-all clausules where it appears and can store an evaluation value.
+all clauses where it appears and can store an evaluation value.
 
-**Clausule** -
-Represents a clausule of the CNF. Has a unique identifier and can be enabled or disabled.
-Every clausule contains a list of Edges that connect the clausule with all the
+**Clause** -
+Represents a clause of the CNF. Has a unique identifier and can be enabled or disabled.
+Every clause contains a list of Edges that connect the clause with all the
 variables that appear in it.
 
 **Edge** -
-Represents the connection of a variable and a clausule with a literal type
+Represents the connection of a variable and a clause with a literal type
 (false = negated literal, true otherwise) that indicate if the variable _i_
-present in the clausule _a_ is negated or not.
+present in the clause _a_ is negated or not.
 It can be enabled or disabled and can store a survey value.
 
 **AssignmentStep** -
 Represents the assignment of variables values. Store a list of assigned Variables,
-a list of disabled clausules and a list of disabled Edges. This object store all
+a list of disabled clauses and a list of disabled Edges. This object store all
 the information needed to revert an assigment and be able to perform backtracking.
 
 # Algorithms
@@ -85,28 +85,28 @@ neighbour Edges using equations 26 and 27 from \[[1](#references)\]
 
 ## Unit Propagation
 
-Unit Propagation (UP) is an algorithm to simplify a CNF that looks for clausules
+Unit Propagation (UP) is an algorithm to simplify a CNF that looks for clauses
 with only one literal and assigns the variable with the value that satisfy the
-clausule \[[2](#references)\]. Then, simplifies the graph and repeats the process.
+clause \[[2](#references)\]. Then, simplifies the graph and repeats the process.
 The algorithm runs until the CNF is solved, a contradiction is found or the CNF
 can't be reduced.
 
-The FactorGraph is modified by assigning variables and dissabling Clausules and Edges.
+The FactorGraph is modified by assigning variables and dissabling Clauses and Edges.
 The AssigmentStep is also modified by storing the previous information.
 
 ```
 INPUT: FactorGraph, AssignmentStep
 OUTPUT: True if all went ok, false if a contradiction was found
 
-1. Found all enabled Clausules with only one enabled Edge and assign the Variable
+1. Found all enabled Clauses with only one enabled Edge and assign the Variable
    of the Edge to true if Edge is POSITIVE and to false if NEGATIVE.
-   Return true if no unitary Clausules are found.
-2. For each Clausule:
-   2.1 Disable the clausule if is satisfied by the assignment (contains the
+   Return true if no unitary Clauses are found.
+2. For each Clause:
+   2.1 Disable the clause if is satisfied by the assignment (contains the
        assigned literal)
-   2.2 Disable each Edge of the clausule that contain an assigned Variable with
+   2.2 Disable each Edge of the clause that contain an assigned Variable with
        the oposite literal type.
-       If the Clausule have 0 enabled Edges, return false (contradiction found).
+       If the Clause have 0 enabled Edges, return false (contradiction found).
 3. Go to step 1
 ```
 
@@ -114,9 +114,9 @@ OUTPUT: True if all went ok, false if a contradiction was found
 
 Walksat is a local search algorithm to solve SAT problems that starts with a
 random assignments and perform a number of flips considering if the flip will
-unsatisfy previously satisfied clausules and introducing noise \[[2](#references)\].
+unsatisfy previously satisfied clauses and introducing noise \[[2](#references)\].
 
-The FactorGraph is modified by assigning variables and dissabling Clausules and Edges.
+The FactorGraph is modified by assigning variables and dissabling Clauses and Edges.
 The AssigmentStep is also modified by storing the previous information.
 
 ```
@@ -127,9 +127,9 @@ OUTPUT: True if a satisfying assigment is found, false otherwise
    1.1 Assign all Variables with a random value.
    1.2 For flip f = 0 to maxFlips:
        1.2.1 If FactorGraph is satisfied, return true.
-       1.2.2 Randomly select an unsatisfied clausule and calculate the break-count
+       1.2.2 Randomly select an unsatisfied clause and calculate the break-count
              of its variables.
-       1.2.3 Flip a Variable of the Clausule if has break-count = 0.
+       1.2.3 Flip a Variable of the Clause if has break-count = 0.
              If not, with probability p (noise), flip a random variable and
              with probability 1 - p, flip the variable with lowest break-count.
 2. If a sat assignment was not found, return false.
@@ -142,7 +142,7 @@ surveys of SP to select and assign variables, which allow to reduce the graph \[
 The algorithm runs until all variables are assigned, SP can't converge or a
 cntradiction is found. If all the surveys in SP are trivial, walksat is used.
 
-The FactorGraph is modified by assigning variables and dissabling Clausules and Edges.
+The FactorGraph is modified by assigning variables and dissabling Clauses and Edges.
 
 ```
 INPUT: FactorGraph, assignmentFraction, SP Params, Walksat Params
@@ -179,7 +179,7 @@ configurations to obtain the percentage of CNF that can be solved.
 Configurations:
 
 - N (variables) = 25000, 50000, 100000
-- α (clausules/variables ratio) = 4.21, 4.22, 4.23, 4.24
+- α (clauses/variables ratio) = 4.21, 4.22, 4.23, 4.24
 - f (assignment fraction) = 4%, 2%, 1%, .5%, .25%, .125%
 
 ### Backtracking Experiment
@@ -192,7 +192,7 @@ configurations to obtain the percentage of CNF that can be solved.
 Configurations:
 
 - N (variables) = 25000, 50000, 100000
-- α (clausules/variables ratio) = 4.21, 4.22, 4.23, 4.24
+- α (clauses/variables ratio) = 4.21, 4.22, 4.23, 4.24
 - f (assignment fraction) = 4%, 2%, 1%, .5%, .25%, .125%
 
 # Develop

@@ -35,11 +35,11 @@ void Variable::AssignValue(const bool newValue, AssignmentStep* stp) {
 // }
 
 // =============================================================================
-// Clausule class
+// Clause class
 // =============================================================================
-Clausule::Clausule(const unsigned id) : id(id), enabled(_enabled) {}
+Clause::Clause(const unsigned id) : id(id), enabled(_enabled) {}
 
-std::vector<Edge*> Clausule::GetEnabledEdges() {
+std::vector<Edge*> Clause::GetEnabledEdges() {
   std::vector<Edge*> enabledNeigbours;
   for (Edge* edge : _allNeighbourEdges) {
     if (edge->enabled) enabledNeigbours.push_back(edge);
@@ -47,16 +47,16 @@ std::vector<Edge*> Clausule::GetEnabledEdges() {
   return enabledNeigbours;
 }
 
-void Clausule::Dissable(AssignmentStep* stp) {
+void Clause::Dissable(AssignmentStep* stp) {
   _enabled = false;
-  if (stp != nullptr) stp->clausules.push_back(this);
+  if (stp != nullptr) stp->clauses.push_back(this);
 
   for (Edge* edge : _allNeighbourEdges) {
     if (edge->enabled) edge->Dissable(stp);
   }
 }
 
-bool Clausule::IsSAT() const {
+bool Clause::IsSAT() const {
   for (Edge* edge : _allNeighbourEdges) {
     if (!edge->enabled) continue;
     if (edge->type == edge->variable->value) return true;
@@ -65,7 +65,7 @@ bool Clausule::IsSAT() const {
   return false;
 }
 
-// std::ostream& operator<<(std::ostream& os, const Clausule* c) {
+// std::ostream& operator<<(std::ostream& os, const Clause* c) {
 //   os << "C" << c->id << ": ";
 //   os << c->GetEnabledEdges().size() << " variables - ";
 //   os << (c->enabled ? "ENABLED" : "DISABLED");
@@ -75,9 +75,9 @@ bool Clausule::IsSAT() const {
 // =============================================================================
 // Edge class
 // =============================================================================
-Edge::Edge(bool type, Clausule* clausule, Variable* variable)
+Edge::Edge(bool type, Clause* clause, Variable* variable)
     : type(type),
-      clausule(clausule),
+      clause(clause),
       variable(variable),
       survey(0.0f),
       enabled(_enabled) {}
@@ -88,7 +88,7 @@ void Edge::Dissable(AssignmentStep* stp) {
 }
 
 // std::ostream& operator<<(std::ostream& os, const Edge* e) {
-//   os << "C" << e->clausule->id << " <---> ";
+//   os << "C" << e->clause->id << " <---> ";
 //   os << (e->type ? " X" : "¬X") << e->variable->id;
 //   os << " - " << (e->enabled ? "ENABLED " : "DISABLED");
 //   os << " (" << std::fixed << std::setprecision(10) << e->survey << ")";
@@ -101,7 +101,7 @@ void Edge::Dissable(AssignmentStep* stp) {
 FactorGraph::FactorGraph(std::ifstream& file) {
   // Process each line of the dimacs file
   bool configured = false;
-  int currentClausuleIndex = 0;
+  int currentClauseIndex = 0;
   std::string line;
   while (getline(file, line)) {
     // Split the lines into tokens
@@ -111,10 +111,10 @@ FactorGraph::FactorGraph(std::ifstream& file) {
     if (tokens[0] == "c") continue;
 
     // If first token is a 'p' and second is 'cnf',
-    // the line contains the number of variables (3rd) and clausules (4th)
+    // the line contains the number of variables (3rd) and clauses (4th)
     else if (tokens[0] == "p" && tokens[1] == "cnf") {
       unsigned int totalVariables = stoi(tokens[2]);
-      unsigned int totalClausules = stoi(tokens[3]);
+      unsigned int totalClauses = stoi(tokens[3]);
 
       // Create variables
       for (unsigned i = 0; i < totalVariables; i++) {
@@ -122,20 +122,20 @@ FactorGraph::FactorGraph(std::ifstream& file) {
         _variables.push_back(variable);
       }
 
-      // Create clausules
-      for (unsigned i = 0; i < totalClausules; i++) {
-        Clausule* clausule = new Clausule(i);
-        _clausules.push_back(clausule);
+      // Create clauses
+      for (unsigned i = 0; i < totalClauses; i++) {
+        Clause* clause = new Clause(i);
+        _clauses.push_back(clause);
       }
 
       configured = true;
     }
 
-    // Every other line should be a clausule containing variables
+    // Every other line should be a clause containing variables
     else {
       if (configured) {
         for (const std::string& token : tokens) {
-          // "0" means end of the clausule
+          // "0" means end of the clause
           if (token != "0") {
             const int variableValue = stoi(token);
             // variables start from 1 and indices from 0
@@ -143,27 +143,27 @@ FactorGraph::FactorGraph(std::ifstream& file) {
 
             // Create an edge
             bool edgeType = variableValue > 0;
-            Clausule* clausule = _clausules[currentClausuleIndex];
+            Clause* clause = _clauses[currentClauseIndex];
             Variable* variable = _variables[variableIndex];
 
-            Edge* edge = new Edge(edgeType, clausule, variable);
+            Edge* edge = new Edge(edgeType, clause, variable);
             _edges.push_back(edge);
 
-            // Connect clausules and variables with the edge
-            clausule->_allNeighbourEdges.push_back(edge);
+            // Connect clauses and variables with the edge
+            clause->_allNeighbourEdges.push_back(edge);
             variable->_allNeighbourEdges.push_back(edge);
           }
         }
 
-        // Next clausule
-        currentClausuleIndex += 1;
+        // Next clause
+        currentClauseIndex += 1;
       }
     }
   }
 }
 
 FactorGraph::~FactorGraph() {
-  for (Clausule* clausule : _clausules) delete clausule;
+  for (Clause* clause : _clauses) delete clause;
   for (Variable* variable : _variables) delete variable;
   for (Edge* edge : _edges) delete edge;
   for (AssignmentStep* step : _assignmentSteps) delete step;
@@ -177,12 +177,12 @@ std::vector<Variable*> FactorGraph::GetUnassignedVariables() {
   return unassignedVariables;
 }
 
-std::vector<Clausule*> FactorGraph::GetEnabledClausules() {
-  std::vector<Clausule*> enabledClausules;
-  for (Clausule* clausule : _clausules) {
-    if (clausule->enabled) enabledClausules.push_back(clausule);
+std::vector<Clause*> FactorGraph::GetEnabledClauses() {
+  std::vector<Clause*> enabledClauses;
+  for (Clause* clause : _clauses) {
+    if (clause->enabled) enabledClauses.push_back(clause);
   }
-  return enabledClausules;
+  return enabledClauses;
 }
 
 std::vector<Edge*> FactorGraph::GetEnabledEdges() {
@@ -194,9 +194,9 @@ std::vector<Edge*> FactorGraph::GetEnabledEdges() {
 }
 
 bool FactorGraph::IsSAT() const {
-  for (Clausule* clausule : _clausules) {
-    if (!clausule->enabled) continue;
-    if (!clausule->IsSAT()) return false;
+  for (Clause* clause : _clauses) {
+    if (!clause->enabled) continue;
+    if (!clause->IsSAT()) return false;
   }
 
   return true;
@@ -207,7 +207,7 @@ void FactorGraph::RevertLastAssigment() {
   _assignmentSteps.pop_back();
 
   for (Variable* variable : lastStep->variables) variable->Unassign();
-  for (Clausule* clausule : lastStep->clausules) clausule->Enable();
+  for (Clause* clause : lastStep->clauses) clause->Enable();
   for (Edge* edge : lastStep->edges) edge->Enable();
 }
 
@@ -216,13 +216,13 @@ std::ostream& operator<<(std::ostream& os, FactorGraph* fg) {
   unsigned assignedVariables =
       totalVariables - fg->GetUnassignedVariables().size();
 
-  unsigned totalClausules = fg->_clausules.size();
-  unsigned satClausules = totalClausules - fg->GetEnabledClausules().size();
+  unsigned totalClauses = fg->_clauses.size();
+  unsigned satClauses = totalClauses - fg->GetEnabledClauses().size();
 
   os << "Assigned Variables: ";
   os << assignedVariables << "/" << totalVariables;
-  os << " - Satisfied Clausules: ";
-  os << satClausules << "/" << totalClausules;
+  os << " - Satisfied Clauses: ";
+  os << satClauses << "/" << totalClauses;
   return os;
 }
 

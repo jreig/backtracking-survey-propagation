@@ -55,21 +55,21 @@ int main() {
 
   // cout << "Experiment parameters:" << endl;
   // cout << " - N (variables) = 25000, 50000, 100000" << endl;
-  // cout << " - α (clausules/variables ratio) = 4.21, 4.22, 4.23, 4.24" <<
+  // cout << " - α (clauses/variables ratio) = 4.21, 4.22, 4.23, 4.24" <<
   // endl; cout << " - f (assignment fraction) = 4%, 2%, 1%, .5%, .25%, .125%"
   // << endl; cout << endl;
 
   // FIXME! Hardcode first experiment
-  int totalVariablesParams[1] = {25000};
+  int totalVariablesParams[1] = {50};
   float alphaParams[1] = {4.21f};
-  float fractionParams[1] = {0.04f};
+  float fractionParams[1] = {0.0f};
 
   int totalCnfInstances = 50;
 
   cout << "Experiment parameters:" << endl;
   cout << " - N (variables) = 25000" << endl;
-  cout << " - α (clausules/variables ratio) = 4.21" << endl;
-  cout << " - f (assignment fraction) = 4%" << endl;
+  cout << " - α (clauses/variables ratio) = 4.21" << endl;
+  cout << " - f (assignment fraction) = 0%" << endl;
   cout << endl;
 
   // ---------------------------------------------------------------------------
@@ -79,7 +79,7 @@ int main() {
 
   sat::ParamsSP defaultParamsSP;
   sat::ParamsWalksat defaultParamsWalksat;
-  sat::utils::randomGenerator.seed(1234);
+  // FIXME! sat::utils::randomGenerator.seed(1234);
 
   cout << " - Done!" << endl;
 
@@ -121,8 +121,9 @@ int main() {
             totalSATInstances++;
             cout << "Solved: SAT" << endl;
           } else {
-            cout << "Solved: - UNSAT" << endl;
+            cout << "Solved: UNSAT" << endl;
           }
+          cout << endl;
 
           delete graph;
         }

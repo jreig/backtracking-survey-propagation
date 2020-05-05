@@ -31,7 +31,7 @@ const std::vector<std::string> SplitString(const std::string& s,
 // =============================================================================
 // Metrics
 // =============================================================================
-static int currentSPIterations = 0;
-static int totalSPIterations = 0;
+static int currentSPIterations;
+static int totalSPIterations;
 
 }  // namespace sat::utils

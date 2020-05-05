@@ -24,8 +24,8 @@ bool UnitPropagation(FactorGraph* graph, AssignmentStep* assignment = nullptr);
 // Walksat
 // -----------------------------------------------------------------------------
 struct ParamsWalksat {
-  uint maxTries = 100;
-  uint maxFlips = 100;
+  uint maxTries = 1000;
+  uint maxFlips = 1000;
   float noise = 0.54f;
 };
 bool Walksat(FactorGraph* graph, ParamsWalksat params,

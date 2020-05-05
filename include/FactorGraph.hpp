@@ -16,7 +16,7 @@ class FactorGraph;
 //
 // Class to represent a variable in the graph.
 // Can be assigned with a value (true, false) and store an evaluation value.
-// Has a vector of neighbour edges that connects the variable with all clausules
+// Has a vector of neighbour edges that connects the variable with all clauses
 // where it appears.
 // =============================================================================
 class Variable {
@@ -79,13 +79,13 @@ class Variable {
 };
 
 // =============================================================================
-// Clausule
+// Clause
 //
-// Class to represent a clausule in the graph.
-// Has a vector of neighbour edges that connects the clausule with all variables
+// Class to represent a clause in the graph.
+// Has a vector of neighbour edges that connects the clause with all variables
 // that appear in it.
 // =============================================================================
-class Clausule {
+class Clause {
   friend class FactorGraph;
 
  public:
@@ -102,13 +102,13 @@ class Clausule {
 
  public:
   // ---------------------------------------------------------------------------
-  // Clausule constructor
+  // Clause constructor
   //
   // Initialices a Node with an id. Links the read-only values
   // to the private ones to provide with more easy use of the class and avoid
   // external modifications
   // ---------------------------------------------------------------------------
-  explicit Clausule(const unsigned id);
+  explicit Clause(const unsigned id);
 
   // ---------------------------------------------------------------------------
   // GetEnabledEdges
@@ -120,21 +120,21 @@ class Clausule {
   // ---------------------------------------------------------------------------
   // Dissable
   //
-  // Dissable the clausule and all its neighbour edges
+  // Dissable the clause and all its neighbour edges
   // ---------------------------------------------------------------------------
   void Dissable(AssignmentStep* assignmentStep = nullptr);
 
   // ---------------------------------------------------------------------------
   // Enable
   //
-  // Enable ONLY the clausule, not its neighbour edges
+  // Enable ONLY the clause, not its neighbour edges
   // ---------------------------------------------------------------------------
   inline void Enable() { _enabled = true; }
 
   // ---------------------------------------------------------------------------
   // IsSAT
   //
-  // Check that the clausule contains an assigned variable that satisfies it
+  // Check that the clause contains an assigned variable that satisfies it
   // ---------------------------------------------------------------------------
   bool IsSAT() const;
 
@@ -143,21 +143,21 @@ class Clausule {
   //
   // C{id}: N variables - [ENABLED|DISABLED]
   // ---------------------------------------------------------------------------
-  // friend std::ostream& operator<<(std::ostream& os, const Clausule* c);
+  // friend std::ostream& operator<<(std::ostream& os, const Clause* c);
 };
 
 // =============================================================================
 // Edge
 //
-// Each Edge represent a connection between a variable and a clausule.
+// Each Edge represent a connection between a variable and a clause.
 // Can store a survey value.
-// Type is false if the variable appears negated in the clausule, true
+// Type is false if the variable appears negated in the clause, true
 // otherwise.
 // =============================================================================
 class Edge {
  public:
   const bool type;
-  Clausule* clausule;
+  Clause* clause;
   Variable* variable;
 
   float survey;
@@ -173,11 +173,11 @@ class Edge {
   // ---------------------------------------------------------------------------
   // Edge constructor
   //
-  // Initialices an Edge with type, clausule and variable. Links the read-only
+  // Initialices an Edge with type, clause and variable. Links the read-only
   // values to the private ones to provide with more easy use of the class
   // and avoid external modifications
   // ---------------------------------------------------------------------------
-  Edge(bool type, Clausule* clausule, Variable* variable);
+  Edge(bool type, Clause* clause, Variable* variable);
 
   // ---------------------------------------------------------------------------
   // Dissable
@@ -208,7 +208,7 @@ class Edge {
 // =============================================================================
 struct AssignmentStep {
   std::vector<Variable*> variables;
-  std::vector<Clausule*> clausules;
+  std::vector<Clause*> clauses;
   std::vector<Edge*> edges;
 };
 
@@ -221,7 +221,7 @@ struct AssignmentStep {
 class FactorGraph {
  private:
   std::vector<Variable*> _variables;
-  std::vector<Clausule*> _clausules;
+  std::vector<Clause*> _clauses;
   std::vector<Edge*> _edges;
   std::vector<AssignmentStep*> _assignmentSteps;
 
@@ -229,7 +229,7 @@ class FactorGraph {
   // ---------------------------------------------------------------------------
   // FactorGraph constructor
   //
-  // Build the Variables, Clausules and Edges of the CNF
+  // Build the Variables, Clauses and Edges of the CNF
   // ---------------------------------------------------------------------------
   explicit FactorGraph(std::ifstream& file);
   ~FactorGraph();
@@ -238,17 +238,17 @@ class FactorGraph {
   // Getters
   // ---------------------------------------------------------------------------
   inline std::vector<Variable*> GetAllVariables() { return _variables; }
-  inline std::vector<Clausule*> GetAllClausules() { return _clausules; }
+  inline std::vector<Clause*> GetAllClauses() { return _clauses; }
   inline std::vector<Edge*> GetAllEdges() { return _edges; }
 
   std::vector<Variable*> GetUnassignedVariables();
-  std::vector<Clausule*> GetEnabledClausules();
+  std::vector<Clause*> GetEnabledClauses();
   std::vector<Edge*> GetEnabledEdges();
 
   // ---------------------------------------------------------------------------
   // IsSat
   //
-  // If all variables are asigned, check that all clausules have a variable that
+  // If all variables are asigned, check that all clauses have a variable that
   // satisfies it
   // ---------------------------------------------------------------------------
   bool IsSAT() const;
@@ -263,7 +263,7 @@ class FactorGraph {
   // ---------------------------------------------------------------------------
   // RevertLastAssigment
   //
-  // Unassign the last assigned variables and enable all clausules and edges
+  // Unassign the last assigned variables and enable all clauses and edges
   // that were disabled.
   // ---------------------------------------------------------------------------
   void RevertLastAssigment();
@@ -271,7 +271,7 @@ class FactorGraph {
   // ---------------------------------------------------------------------------
   // operator<<
   //
-  // Assigned Variables: N/N - Satisfied Clausules: N/N
+  // Assigned Variables: N/N - Satisfied Clauses: N/N
   // ---------------------------------------------------------------------------
   friend std::ostream& operator<<(std::ostream& os, FactorGraph* fg);
 };

@@ -50,7 +50,7 @@ void UpdateSurvey(Edge* ai) {
   float Sai = 1.0f;
 
   // For each a->j when j != i
-  for (Edge* aj : ai->clausule->GetEnabledEdges()) {
+  for (Edge* aj : ai->clause->GetEnabledEdges()) {
     if (aj == ai) continue;  // j == i
 
     // Product values initalization for all b->j survey values
@@ -91,22 +91,21 @@ void UpdateSurvey(Edge* ai) {
 // Unit Propagation
 // -----------------------------------------------------------------------------
 bool UnitPropagation(FactorGraph* graph, AssignmentStep* assignment) {
-  // Run until contradiction is found or no unit clausules are found
+  // Run until contradiction is found or no unit clauses are found
   while (true) {
-    // 1. Found all enabled Clausules with only one enabled Edge
-    std::vector<Clausule*> unitClausules;
-    for (Clausule* clausule : graph->GetEnabledClausules()) {
-      if (clausule->GetEnabledEdges().size() == 1)
-        unitClausules.push_back(clausule);
+    // 1. Found all enabled Clauses with only one enabled Edge
+    std::vector<Clause*> unitClauses;
+    for (Clause* clause : graph->GetEnabledClauses()) {
+      if (clause->GetEnabledEdges().size() == 1) unitClauses.push_back(clause);
     }
 
-    // Return true if no unitary Clausules are found.
-    if (unitClausules.size() == 0) return true;
+    // Return true if no unitary Clauses are found.
+    if (unitClauses.size() == 0) return true;
 
-    // Assign the Variable of the unit clausule to true if Edge is POSITIVE
+    // Assign the Variable of the unit clause to true if Edge is POSITIVE
     // and to false if NEGATIVE.
-    for (Clausule* unitClausule : unitClausules) {
-      Edge* edge = unitClausule->GetEnabledEdges()[0];
+    for (Clause* unitClause : unitClauses) {
+      Edge* edge = unitClause->GetEnabledEdges()[0];
       if (!edge->variable->assigned) {
         edge->variable->AssignValue(edge->type, assignment);
       }
@@ -117,18 +116,18 @@ bool UnitPropagation(FactorGraph* graph, AssignmentStep* assignment) {
       }
     }
 
-    // 2. For each Clausule in the graph:
-    for (Clausule* clausule : graph->GetEnabledClausules()) {
-      for (Edge* edge : clausule->GetEnabledEdges()) {
+    // 2. For each Clause in the graph:
+    for (Clause* clause : graph->GetEnabledClauses()) {
+      for (Edge* edge : clause->GetEnabledEdges()) {
         if (edge->variable->assigned) {
-          // 2.1 Disable the clausule if is satisfied by the assignment
+          // 2.1 Disable the clause if is satisfied by the assignment
           // (contains the assigned literal)
           if (edge->type == edge->variable->value) {
-            clausule->Dissable(assignment);
+            clause->Dissable(assignment);
             break;
           }
 
-          // 2.2 Disable each Edge of the clausule that contain an assigned
+          // 2.2 Disable each Edge of the clause that contain an assigned
           // Variable with the oposite literal type.
           else {
             edge->Dissable(assignment);
@@ -136,9 +135,9 @@ bool UnitPropagation(FactorGraph* graph, AssignmentStep* assignment) {
         }
       }
 
-      // If the Clausule is enabled and have 0 enabled Edges,
+      // If the Clause is enabled and have 0 enabled Edges,
       // return false (contradiction found).
-      if (clausule->enabled && clausule->GetEnabledEdges().size() == 0)
+      if (clause->enabled && clause->GetEnabledEdges().size() == 0)
         return false;
     }
   }
@@ -163,37 +162,37 @@ bool Walksat(FactorGraph* graph, ParamsWalksat params,
       // 1.2.1 If FactorGraph is satisfied, return true
       if (graph->IsSAT()) return true;
 
-      // 1.2.2 Randomly select an unsatisfied clausule and calculate the
+      // 1.2.2 Randomly select an unsatisfied clause and calculate the
       // break-count of its variables
 
-      // Separate clausules into sat and unsat
-      std::vector<Clausule*> satClausules;
-      std::vector<Clausule*> unsatClausules;
-      for (Clausule* clausule : graph->GetEnabledClausules()) {
-        if (clausule->IsSAT())
-          satClausules.push_back(clausule);
+      // Separate clauses into sat and unsat
+      std::vector<Clause*> satClauses;
+      std::vector<Clause*> unsatClauses;
+      for (Clause* clause : graph->GetEnabledClauses()) {
+        if (clause->IsSAT())
+          satClauses.push_back(clause);
         else
-          unsatClausules.push_back(clausule);
+          unsatClauses.push_back(clause);
       }
 
-      // Select random unsat clausule
-      std::uniform_int_distribution<> randomInt(0, unsatClausules.size() - 1);
+      // Select random unsat clause
+      std::uniform_int_distribution<> randomInt(0, unsatClauses.size() - 1);
       int randIndex = randomInt(utils::randomGenerator);
-      Clausule* selectedClausule = unsatClausules[randIndex];
-      std::vector<Edge*> selectedClausuleEdges =
-          selectedClausule->GetEnabledEdges();
+      Clause* selectedClause = unsatClauses[randIndex];
+      std::vector<Edge*> selectedClauseEdges =
+          selectedClause->GetEnabledEdges();
 
       // Calculate break-count (number of currently satisfied clauses
       // that become unsatisfied if the variable value is fliped) of variables
-      // in selected clausule
+      // in selected clause
       Variable* lowestBreakCountVar = nullptr;
-      uint lowestBreakCount = satClausules.size() + 1;
-      for (Edge* edge : selectedClausuleEdges) {
+      uint lowestBreakCount = satClauses.size() + 1;
+      for (Edge* edge : selectedClauseEdges) {
         uint breakCount = 0;
         // Flip variable and count
         edge->variable->AssignValue(!edge->variable->value);
-        for (Clausule* satClausule : satClausules) {
-          if (!satClausule->IsSAT()) breakCount++;
+        for (Clause* satClause : satClauses) {
+          if (!satClause->IsSAT()) breakCount++;
         }
         // flip again to stay as it was
         edge->variable->AssignValue(!edge->variable->value);
@@ -208,7 +207,7 @@ bool Walksat(FactorGraph* graph, ParamsWalksat params,
         if (breakCount == 0) break;
       }
 
-      // 1.2.3 Flip a Variable of the Clausule if has break-count = 0
+      // 1.2.3 Flip a Variable of the Clause if has break-count = 0
       // If not, with probability p (noise), flip a random variable and
       // with probability 1 - p, flip the variable with lowest break-count
       if (lowestBreakCount == 0) {
@@ -221,9 +220,9 @@ bool Walksat(FactorGraph* graph, ParamsWalksat params,
         // probability p
         else {
           std::uniform_int_distribution<> randEdgeIndexDist(
-              0, selectedClausuleEdges.size() - 1);
+              0, selectedClauseEdges.size() - 1);
           int randomEdgeIndex = randEdgeIndexDist(utils::randomGenerator);
-          Variable* var = selectedClausuleEdges[randomEdgeIndex]->variable;
+          Variable* var = selectedClauseEdges[randomEdgeIndex]->variable;
           var->AssignValue(!var->value);
         }
       }
@@ -242,7 +241,7 @@ bool SID(FactorGraph* graph, float fraction, ParamsSP paramsSP,
   // Start metrics
   utils::currentSPIterations = 0;
 
-  while (!graph->IsSAT()) {
+  while (true) {
     // 1. Run UNIT PROPAGTION
     bool UPResult = UnitPropagation(graph);
     // If a contradiction in found, return false
@@ -276,6 +275,10 @@ bool SID(FactorGraph* graph, float fraction, ParamsSP paramsSP,
       bool walksatResult = Walksat(graph, paramsWalksat);
       if (!walksatResult)
         std::cout << "Walksat can't found a solution" << std::endl;
+      else {
+        utils::totalSPIterations += utils::currentSPIterations;
+        std::cout << "Solved with Walksat" << std::endl;
+      }
       return walksatResult;
     }
 
@@ -287,7 +290,9 @@ bool SID(FactorGraph* graph, float fraction, ParamsSP paramsSP,
       EvaluateVariable(variable);
     }
 
-    int assignFraction = (int)(unassignedVariables.size() * fraction) + 1;
+    // Assign minimum 1 variable
+    int assignFraction = (int)(unassignedVariables.size() * fraction);
+    if (assignFraction < 1) assignFraction = 1;
     std::sort(unassignedVariables.begin(), unassignedVariables.end(),
               [](const Variable* lvar, const Variable* rvar) {
                 return std::abs(lvar->evalValue) > std::abs(rvar->evalValue);
@@ -299,22 +304,19 @@ bool SID(FactorGraph* graph, float fraction, ParamsSP paramsSP,
       var->AssignValue(newValue);
       for (Edge* edge : var->GetEnabledEdges()) {
         if (edge->type == var->value) {
-          edge->clausule->Dissable();
+          edge->clause->Dissable();
         } else {
           edge->Dissable();
         }
       }
     }
 
-    std::cout << graph << std::endl;
+    // std::cout << graph << std::endl;
   };
-
-  utils::totalSPIterations += utils::currentSPIterations;
-  return true;
 }
 
 void EvaluateVariable(Variable* variable) {
-  // Vi  = V(i)  -> Subset of clausules where the variable i appears
+  // Vi  = V(i)  -> Subset of clauses where the variable i appears
   // ViP = V+(i) -> substed of V(i) where i appears unnegated
   // ViN = V-(i) -> substed of V(i) where i appears negated
   // Product values initialization for all a->i survey values
@@ -325,10 +327,10 @@ void EvaluateVariable(Variable* variable) {
   // For each a->i
   for (Edge* ai : variable->GetEnabledEdges()) {
     if (ai->type) {
-      // Update PViP if variable i appears unnegated in clausule a
+      // Update PViP if variable i appears unnegated in clause a
       PViP = PViP * (1 - ai->survey);
     } else {
-      // Update PViN if variable i appears negated in clausule a
+      // Update PViN if variable i appears negated in clause a
       PViN = PViN * (1 - ai->survey);
     }
 
