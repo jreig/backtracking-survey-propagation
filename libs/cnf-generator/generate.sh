@@ -1,8 +1,10 @@
 #!/bin/bash
 
 k=3;
-variables=(25000 50000 100000)
-alpha=(4.21 4.22 4.23 4.24)
+variables=(3)
+alpha=(4.21)
+# variables=(25000 50000 100000)
+# alpha=(4.21 4.22 4.23 4.24)
 for n in "${variables[@]}";do
   for ratio in "${alpha[@]}";do 
 	  m=$(echo "scale=0; $n*$ratio/1.0"|bc);

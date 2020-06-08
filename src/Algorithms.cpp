@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <cmath>
 #include <vector>
 
 // Project headers
@@ -16,23 +17,29 @@ bool SurveyPropagation(FactorGraph* graph, ParamsSP params) {
   // 1 - Random initialization of survey values
   std::vector<Edge*> edges = graph->GetEnabledEdges();
 
+  std::cout << "Initial random surveys:" << std::endl;
   for (Edge* edge : edges) {
     edge->survey = utils::getRandomReal01();
+    std::cout << edge << std::endl;
   }
 
   // 4 - Repeat until all surveys converge or max iterations are reached
   bool allEdgesConverged = false;
   for (uint i = 0; i < params.maxIterations && !allEdgesConverged; i++) {
+    std::cout << std::endl;
+    std::cout << "Iteration: " << i << std::endl;
     // 2 - Order randomly the set of edges
     std::shuffle(edges.begin(), edges.end(), utils::randomGenerator);
 
     // 3 - Update the survey value of each edge
     allEdgesConverged = true;
     for (Edge* edge : edges) {
-      float previousSurveyValue = edge->survey;
+      long double previousSurveyValue = edge->survey;
       UpdateSurvey(edge);
 
       // Check if edge converged
+      std::cout << edge << std::endl;
+
       bool hasConverged =
           std::abs(edge->survey - previousSurveyValue) < params.epsilon;
       if (!hasConverged) allEdgesConverged = false;
@@ -42,21 +49,25 @@ bool SurveyPropagation(FactorGraph* graph, ParamsSP params) {
     utils::currentSPIterations++;
   }
 
+  std::cout << std::endl;
+  for (Edge* edge : edges) {
+    std::cout << edge << std::endl;
+  }
   return allEdgesConverged;
 }
 
 void UpdateSurvey(Edge* ai) {
   // Param edge is a->i
-  float Sai = 1.0f;
+  long double Sai = 1.0;
 
   // For each a->j when j != i
   for (Edge* aj : ai->clause->GetEnabledEdges()) {
     if (aj == ai) continue;  // j == i
 
     // Product values initalization for all b->j survey values
-    float Pubj = 1.0f;
-    float Psbj = 1.0f;
-    float P0bj = 1.0f;
+    long double Pubj = 1.0;
+    long double Psbj = 1.0;
+    long double P0bj = 1.0;
 
     // For each b->j when b != a
     for (Edge* bj : aj->variable->GetEnabledEdges()) {
@@ -64,23 +75,41 @@ void UpdateSurvey(Edge* ai) {
 
       if (bj->type != aj->type) {
         // Update Pubj if both edges have different edge type -> b€Vua(j)
-        Pubj = Pubj * (1 - bj->survey);
+        Pubj = Pubj * (1.0 - bj->survey);
       }
       if (bj->type == aj->type) {
         // Update Psbj if both edges have same edge type -> b€Vsa(j)
-        Psbj = Psbj * (1 - bj->survey);
+        Psbj = Psbj * (1.0 - bj->survey);
       }
 
-      P0bj = P0bj * (1 - bj->survey);
+      P0bj = P0bj * (1.0 - bj->survey);
     }
 
     // Product values for all a->j survey values (Equation 26)
-    float Puaj = (1.0f - Pubj) * Psbj;
-    float Psaj = (1.0f - Psbj) * Pubj;
-    float P0aj = P0bj;
+    long double Puaj = (1.0 - Pubj) * Psbj;
+    long double Psaj = (1.0 - Psbj) * Pubj;
+    long double P0aj = P0bj;
 
     // Update a->i survey value (Equation 27)
-    Sai = Sai * (Puaj / (Puaj + Psaj + P0aj));
+    long double aux1 = (Puaj + Psaj + P0aj);
+    long double aux2 = Puaj / aux1;
+    Sai = Sai * aux2;
+
+    if (Sai == 1.0 || std::isnan(Sai)) {
+      std::cout << "=================================" << std::endl;
+      if (Sai == 1.0) std::cout << "Survey is 1.0 exactly" << std::endl;
+      if (std::isnan(Sai)) std::cout << "Survey is NaN" << std::endl;
+      std::cout << "Edge a->i: " << ai << std::endl;
+      std::cout << "Edge a->j: " << aj << std::endl;
+      std::cout << "Pubj = " << Pubj << std::endl;
+      std::cout << "Psbj = " << Psbj << std::endl;
+      std::cout << "P0bj = " << P0bj << std::endl;
+      std::cout << "Puaj = " << Puaj << std::endl;
+      std::cout << "Psaj = " << Psaj << std::endl;
+      std::cout << "P0aj = " << P0aj << std::endl;
+      std::cout << "Sai = " << Sai << std::endl;
+      std::cout << "===================================" << std::endl;
+    }
   }
 
   // update a->i survey
@@ -108,6 +137,8 @@ bool UnitPropagation(FactorGraph* graph, AssignmentStep* assignment) {
       Edge* edge = unitClause->GetEnabledEdges()[0];
       if (!edge->variable->assigned) {
         edge->variable->AssignValue(edge->type, assignment);
+        std::cout << "UP assign: " << edge->variable->id << " - " << edge->type
+                  << std::endl;
       }
       // If the variable is already assigned with a value distinct from the edge
       // type, return false (contradiction found)
@@ -140,6 +171,8 @@ bool UnitPropagation(FactorGraph* graph, AssignmentStep* assignment) {
       if (clause->enabled && clause->GetEnabledEdges().size() == 0)
         return false;
     }
+
+    std::cout << "UP:" << graph << std::endl;
   }
 }
 
@@ -252,6 +285,7 @@ bool SID(FactorGraph* graph, float fraction, ParamsSP paramsSP,
     // If SAT, return true.
     if (graph->IsSAT()) {
       utils::totalSPIterations += utils::currentSPIterations;
+      std::cout << "IsSAT()" << std::endl;
       return true;
     }
 
@@ -266,7 +300,7 @@ bool SID(FactorGraph* graph, float fraction, ParamsSP paramsSP,
     // 3.1 If all surveys are trivial, return WALKSAT result
     bool allTrivial = true;
     for (Edge* edge : graph->GetEnabledEdges()) {
-      if (edge->survey != 0.0f) {
+      if (edge->survey != 0.0) {
         allTrivial = false;
         break;
       }
@@ -286,8 +320,11 @@ bool SID(FactorGraph* graph, float fraction, ParamsSP paramsSP,
     // the graph
     std::vector<Variable*> unassignedVariables =
         graph->GetUnassignedVariables();
+    std::cout << std::endl;
     for (Variable* variable : unassignedVariables) {
       EvaluateVariable(variable);
+      std::cout << variable->id << "(" << variable->evalValue << ")"
+                << std::endl;
     }
 
     // Assign minimum 1 variable
@@ -301,6 +338,8 @@ bool SID(FactorGraph* graph, float fraction, ParamsSP paramsSP,
     for (int i = 0; i < assignFraction; i++) {
       Variable* var = unassignedVariables[i];
       bool newValue = var->evalValue > 0;
+      std::cout << "Assigned: X" << var->id << " - "
+                << (newValue ? "true" : "false") << std::endl;
       var->AssignValue(newValue);
       for (Edge* edge : var->GetEnabledEdges()) {
         if (edge->type == var->value) {
@@ -311,7 +350,7 @@ bool SID(FactorGraph* graph, float fraction, ParamsSP paramsSP,
       }
     }
 
-    // std::cout << graph << std::endl;
+    std::cout << graph << std::endl;
   };
 }
 
@@ -320,31 +359,31 @@ void EvaluateVariable(Variable* variable) {
   // ViP = V+(i) -> substed of V(i) where i appears unnegated
   // ViN = V-(i) -> substed of V(i) where i appears negated
   // Product values initialization for all a->i survey values
-  float PVi0 = 1.0f;
-  float PViP = 1.0f;
-  float PViN = 1.0f;
+  long double PVi0 = 1.0;
+  long double PViP = 1.0;
+  long double PViN = 1.0;
 
   // For each a->i
   for (Edge* ai : variable->GetEnabledEdges()) {
     if (ai->type) {
       // Update PViP if variable i appears unnegated in clause a
-      PViP = PViP * (1 - ai->survey);
+      PViP = PViP * (1.0 - ai->survey);
     } else {
       // Update PViN if variable i appears negated in clause a
-      PViN = PViN * (1 - ai->survey);
+      PViN = PViN * (1.0 - ai->survey);
     }
 
-    PVi0 = PVi0 * (1 - ai->survey);
+    PVi0 = PVi0 * (1.0 - ai->survey);
   }
 
   // Auxiliar variables to calculate Wi(+) and Wi(-)
-  float PiP = (1.0f - PViP) * PViN;
-  float PiN = (1.0f - PViN) * PViP;
-  float Pi0 = PVi0;
+  long double PiP = (1.0 - PViP) * PViN;
+  long double PiN = (1.0 - PViN) * PViP;
+  long double Pi0 = PVi0;
 
   // Calculate 'biases'
-  float WiP = PiP / (PiP + PiN + Pi0);  // Wi(+)
-  float WiN = PiN / (PiP + PiN + Pi0);  // Wi(-)
+  long double WiP = PiP / (PiP + PiN + Pi0);  // Wi(+)
+  long double WiN = PiN / (PiP + PiN + Pi0);  // Wi(-)
 
   variable->evalValue = WiP - WiN;
 }

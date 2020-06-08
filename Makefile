@@ -84,6 +84,9 @@ run-integration-test:
 run-unit-test:
 	@./$(BUILD_DIR)/$(TEST_TARGET) [unit]
 
+run-test-prueba:
+	@./$(BUILD_DIR)/$(TEST_TARGET) [prueba]
+
 clean-test:
 	-@rm -rvf $(BUILD_DIR)/${TEST_DIR}/*
 	-@rm -rvf $(BUILD_DIR)/${TEST_TARGET}

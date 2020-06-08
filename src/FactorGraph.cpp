@@ -87,13 +87,14 @@ void Edge::Dissable(AssignmentStep* stp) {
   if (stp != nullptr) stp->edges.push_back(this);
 }
 
-// std::ostream& operator<<(std::ostream& os, const Edge* e) {
-//   os << "C" << e->clause->id << " <---> ";
-//   os << (e->type ? " X" : "¬X") << e->variable->id;
-//   os << " - " << (e->enabled ? "ENABLED " : "DISABLED");
-//   os << " (" << std::fixed << std::setprecision(10) << e->survey << ")";
-//   return os;
-// }
+std::ostream& operator<<(std::ostream& os, const Edge* e) {
+  os << "C" << e->clause->id << " <---> ";
+  os << (e->type ? " X" : "¬X") << e->variable->id;
+  os << " - " << (e->enabled ? "ENABLED " : "DISABLED");
+  // os << " (" << std::fixed << std::setprecision(10) << e->survey << ")";
+  os << " (" << e->survey << ")";
+  return os;
+}
 
 // =============================================================================
 // FactorGraph class

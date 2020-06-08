@@ -24,7 +24,7 @@ class Variable {
 
  public:
   const unsigned id;
-  float evalValue;
+  long double evalValue;
 
   // Read-only variables pointing to its private values
   // The linking is done in the constructor
@@ -160,7 +160,7 @@ class Edge {
   Clause* clause;
   Variable* variable;
 
-  float survey;
+  long double survey;
 
   // Read-only variable pointing to its private value
   // The linking is done in the constructor
@@ -198,7 +198,7 @@ class Edge {
   //
   // C{clau.id} <---> [¬]X{var.id} - [ENABLED|DISABLED] ({survey})
   // ---------------------------------------------------------------------------
-  // friend std::ostream& operator<<(std::ostream& os, const Edge* e);
+  friend std::ostream& operator<<(std::ostream& os, const Edge* e);
 };
 
 // =============================================================================

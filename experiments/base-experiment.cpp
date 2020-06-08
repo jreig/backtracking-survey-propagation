@@ -60,14 +60,14 @@ int main() {
   // << endl; cout << endl;
 
   // FIXME! Hardcode first experiment
-  int totalVariablesParams[1] = {50};
+  int totalVariablesParams[1] = {3};
   float alphaParams[1] = {4.21f};
   float fractionParams[1] = {0.0f};
 
   int totalCnfInstances = 50;
 
   cout << "Experiment parameters:" << endl;
-  cout << " - N (variables) = 25000" << endl;
+  cout << " - N (variables) = 3" << endl;
   cout << " - α (clauses/variables ratio) = 4.21" << endl;
   cout << " - f (assignment fraction) = 0%" << endl;
   cout << endl;
