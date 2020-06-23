@@ -73,9 +73,10 @@ $ ./libs/cnf-generator/generate-community.sh N α
 ```
 
 3. Execute experiment and save the result (change output file with correct values):
+   If seed = 0, then a random will be used
 
 ```
-$ ./build/experiment N α [random|community] | tee ./experiments/result/result-[random|community]-[N]-[α].txt
+$ ./build/experiment N α [random|community] seed | tee ./experiments/result/result-{random|community}-{N}-{α}-{seed}.txt
 ```
 
 # FactorGraph

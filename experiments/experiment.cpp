@@ -22,7 +22,7 @@ using namespace sat;
 // CNFs are stored in DIMACS files in the experiments/instances/ folder.
 // ---------------------------------------------------------------------------
 vector<string> GetRandomCNFFiles(int totalInstances, int N, double alpha,
-                                 string generator) {
+                                 const string& generator) {
   vector<string> paths;
 
   for (int i = 1; i <= totalInstances; i++) {
@@ -42,9 +42,10 @@ int main(int argc, char* argv[]) {
   // ---------------------------------------------------------------------------
   // Parse arguments
   // ---------------------------------------------------------------------------
-  if (argc != 3 && argc != 4) {
-    cout << "Invalid arguments. Usage: ./experiment N A [random|community]"
+  if (argc != 5) {
+    cout << "Invalid arguments. Usage: ./experiment N A [random|community] seed"
          << endl;
+    cout << "If seed = 0, random seed is used" << endl;
     return -1;
   }
 
@@ -61,6 +62,7 @@ int main(int argc, char* argv[]) {
       return -1;
     }
   }
+  int seed = atoi(argv[4]);
 
   cout << "===========================================================" << endl;
   cout << "==                RUNNING BASE EXPERIMENT                ==" << endl;
@@ -70,11 +72,15 @@ int main(int argc, char* argv[]) {
   cout << " - N (variables) = " << totalVariables << endl;
   cout << " - α (clauses/variables ratio) = " << alpha << endl;
   cout << " - 3-SAT CNF generator = " << generator << endl;
+  cout << " - Seed = " << seed << endl;
   cout << endl;
 
   cout << "Setting up experiment environment...";
 
-  utils::RandomGen::setSeed(1234);
+  if (seed != 0) utils::RandomGen::setSeed(seed);
+  // Get random CNF instances
+  vector<string> paths =
+      GetRandomCNFFiles(totalCnfInstances, totalVariables, alpha, generator);
 
   cout << " - Done!" << endl;
 
@@ -82,9 +88,6 @@ int main(int argc, char* argv[]) {
   // Run experiments
   // ---------------------------------------------------------------------------
   int experimentId = 1;
-  // Get random CNF instances
-  vector<string> paths =
-      GetRandomCNFFiles(totalCnfInstances, totalVariables, alpha, generator);
 
   for (double fraction : fractionParams) {
     cout << endl << endl;
