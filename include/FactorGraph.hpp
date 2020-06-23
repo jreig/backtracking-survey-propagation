@@ -7,7 +7,6 @@
 namespace sat {
 
 // Declarations to avoid circular dependencies
-struct AssignmentStep;
 class Edge;
 class FactorGraph;
 
@@ -24,7 +23,7 @@ class Variable {
 
  public:
   const unsigned id;
-  long double evalValue;
+  double evalValue;
 
   // Read-only variables pointing to its private values
   // The linking is done in the constructor
@@ -57,18 +56,9 @@ class Variable {
   // ---------------------------------------------------------------------------
   // AssignValue
   //
-  // Sets _assigned to true and _value to the new value. An AssigmentStep can be
-  // provided to keep track of the assignments.
+  // Sets _assigned to true and _value to the new value.
   // ---------------------------------------------------------------------------
-  void AssignValue(const bool newValue,
-                   AssignmentStep* assignmentStep = nullptr);
-
-  // ---------------------------------------------------------------------------
-  // Unassign
-  //
-  // Sets _assigned to false. Used to revert an assignment when backtracking
-  // ---------------------------------------------------------------------------
-  inline void Unassign() { _assigned = false; }
+  void AssignValue(const bool newValue);
 
   // ---------------------------------------------------------------------------
   // operator<<
@@ -122,14 +112,7 @@ class Clause {
   //
   // Dissable the clause and all its neighbour edges
   // ---------------------------------------------------------------------------
-  void Dissable(AssignmentStep* assignmentStep = nullptr);
-
-  // ---------------------------------------------------------------------------
-  // Enable
-  //
-  // Enable ONLY the clause, not its neighbour edges
-  // ---------------------------------------------------------------------------
-  inline void Enable() { _enabled = true; }
+  void Dissable();
 
   // ---------------------------------------------------------------------------
   // IsSAT
@@ -160,7 +143,7 @@ class Edge {
   Clause* clause;
   Variable* variable;
 
-  long double survey;
+  double survey;
 
   // Read-only variable pointing to its private value
   // The linking is done in the constructor
@@ -184,7 +167,7 @@ class Edge {
   //
   // Dissable the edge
   // ---------------------------------------------------------------------------
-  void Dissable(AssignmentStep* assignmentStep = nullptr);
+  void Dissable();
 
   // ---------------------------------------------------------------------------
   // Enable
@@ -202,17 +185,6 @@ class Edge {
 };
 
 // =============================================================================
-// AssignmentStep
-//
-// Store the modifications done to the graph to be able to revert them.
-// =============================================================================
-struct AssignmentStep {
-  std::vector<Variable*> variables;
-  std::vector<Clause*> clauses;
-  std::vector<Edge*> edges;
-};
-
-// =============================================================================
 // FactorGraph
 //
 // Graph representation of a CNF. Must be initialized with the content of a
@@ -223,7 +195,6 @@ class FactorGraph {
   std::vector<Variable*> _variables;
   std::vector<Clause*> _clauses;
   std::vector<Edge*> _edges;
-  std::vector<AssignmentStep*> _assignmentSteps;
 
  public:
   // ---------------------------------------------------------------------------
@@ -252,21 +223,6 @@ class FactorGraph {
   // satisfies it
   // ---------------------------------------------------------------------------
   bool IsSAT() const;
-
-  // ---------------------------------------------------------------------------
-  // StoreAssignmentStep
-  //
-  // Store an assignment step
-  // ---------------------------------------------------------------------------
-  void StoreAssignmentStep(AssignmentStep* step);
-
-  // ---------------------------------------------------------------------------
-  // RevertLastAssigment
-  //
-  // Unassign the last assigned variables and enable all clauses and edges
-  // that were disabled.
-  // ---------------------------------------------------------------------------
-  void RevertLastAssigment();
 
   // ---------------------------------------------------------------------------
   // operator<<

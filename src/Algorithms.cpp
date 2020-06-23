@@ -4,6 +4,7 @@
 
 // Project headers
 #include <Algorithms.hpp>
+#include <Configuration.hpp>
 #include <Utils.hpp>
 
 namespace sat {
@@ -11,63 +12,50 @@ namespace sat {
 // -----------------------------------------------------------------------------
 // Survey Propagation
 // -----------------------------------------------------------------------------
-bool SurveyPropagation(FactorGraph* graph, ParamsSP params) {
-  // TODO Check that the parameters have correct values
-
+SPResult SurveyPropagation(FactorGraph* graph) {
   // 1 - Random initialization of survey values
   std::vector<Edge*> edges = graph->GetEnabledEdges();
-
-  std::cout << "Initial random surveys:" << std::endl;
   for (Edge* edge : edges) {
-    edge->survey = utils::getRandomReal01();
-    std::cout << edge << std::endl;
+    edge->survey = utils::RandomGen::getRandomReal01();
   }
 
   // 4 - Repeat until all surveys converge or max iterations are reached
   bool allEdgesConverged = false;
-  for (uint i = 0; i < params.maxIterations && !allEdgesConverged; i++) {
-    std::cout << std::endl;
-    std::cout << "Iteration: " << i << std::endl;
+  uint totalIt = 0;
+  for (uint i = 0; i < SP_MAX_ITERATIONS && !allEdgesConverged; i++) {
     // 2 - Order randomly the set of edges
-    std::shuffle(edges.begin(), edges.end(), utils::randomGenerator);
+    std::shuffle(edges.begin(), edges.end(), utils::RandomGen::randomGenerator);
 
     // 3 - Update the survey value of each edge
     allEdgesConverged = true;
     for (Edge* edge : edges) {
-      long double previousSurveyValue = edge->survey;
+      double previousSurveyValue = edge->survey;
       UpdateSurvey(edge);
 
       // Check if edge converged
-      std::cout << edge << std::endl;
-
       bool hasConverged =
-          std::abs(edge->survey - previousSurveyValue) < params.epsilon;
+          std::abs(edge->survey - previousSurveyValue) < SP_EPSILON;
       if (!hasConverged) allEdgesConverged = false;
     }
 
-    // Update metrics
-    utils::currentSPIterations++;
+    totalIt += 1;
   }
 
-  std::cout << std::endl;
-  for (Edge* edge : edges) {
-    std::cout << edge << std::endl;
-  }
-  return allEdgesConverged;
+  return {allEdgesConverged, totalIt};
 }
 
 void UpdateSurvey(Edge* ai) {
   // Param edge is a->i
-  long double Sai = 1.0;
+  double Sai = 1.0;
 
   // For each a->j when j != i
   for (Edge* aj : ai->clause->GetEnabledEdges()) {
     if (aj == ai) continue;  // j == i
 
     // Product values initalization for all b->j survey values
-    long double Pubj = 1.0;
-    long double Psbj = 1.0;
-    long double P0bj = 1.0;
+    double Pubj = 1.0;
+    double Psbj = 1.0;
+    double P0bj = 1.0;
 
     // For each b->j when b != a
     for (Edge* bj : aj->variable->GetEnabledEdges()) {
@@ -86,29 +74,20 @@ void UpdateSurvey(Edge* ai) {
     }
 
     // Product values for all a->j survey values (Equation 26)
-    long double Puaj = (1.0 - Pubj) * Psbj;
-    long double Psaj = (1.0 - Psbj) * Pubj;
-    long double P0aj = P0bj;
+    double Puaj = (1.0 - Pubj) * Psbj;
+    double Psaj = (1.0 - Psbj) * Pubj;
+    double P0aj = P0bj;
 
     // Update a->i survey value (Equation 27)
-    long double aux1 = (Puaj + Psaj + P0aj);
-    long double aux2 = Puaj / aux1;
-    Sai = Sai * aux2;
+    double div = Puaj / (Puaj + Psaj + P0aj);
 
-    if (Sai == 1.0 || std::isnan(Sai)) {
-      std::cout << "=================================" << std::endl;
-      if (Sai == 1.0) std::cout << "Survey is 1.0 exactly" << std::endl;
-      if (std::isnan(Sai)) std::cout << "Survey is NaN" << std::endl;
-      std::cout << "Edge a->i: " << ai << std::endl;
-      std::cout << "Edge a->j: " << aj << std::endl;
-      std::cout << "Pubj = " << Pubj << std::endl;
-      std::cout << "Psbj = " << Psbj << std::endl;
-      std::cout << "P0bj = " << P0bj << std::endl;
-      std::cout << "Puaj = " << Puaj << std::endl;
-      std::cout << "Psaj = " << Psaj << std::endl;
-      std::cout << "P0aj = " << P0aj << std::endl;
-      std::cout << "Sai = " << Sai << std::endl;
-      std::cout << "===================================" << std::endl;
+    // Some survey may result in a 0/0 division. To avoid errors, the result
+    // is estblished to 0 to make the survey trivial
+    if (std::isnan(div)) {
+      Sai = 0.0;
+      break;
+    } else {
+      Sai = Sai * div;
     }
   }
 
@@ -119,7 +98,7 @@ void UpdateSurvey(Edge* ai) {
 // -----------------------------------------------------------------------------
 // Unit Propagation
 // -----------------------------------------------------------------------------
-bool UnitPropagation(FactorGraph* graph, AssignmentStep* assignment) {
+bool UnitPropagation(FactorGraph* graph) {
   // Run until contradiction is found or no unit clauses are found
   while (true) {
     // 1. Found all enabled Clauses with only one enabled Edge
@@ -136,9 +115,9 @@ bool UnitPropagation(FactorGraph* graph, AssignmentStep* assignment) {
     for (Clause* unitClause : unitClauses) {
       Edge* edge = unitClause->GetEnabledEdges()[0];
       if (!edge->variable->assigned) {
-        edge->variable->AssignValue(edge->type, assignment);
-        std::cout << "UP assign: " << edge->variable->id << " - " << edge->type
-                  << std::endl;
+        edge->variable->AssignValue(edge->type);
+        // std::cout << "UP assign: " << edge->variable->id << " - " <<
+        // edge->type << std::endl;
       }
       // If the variable is already assigned with a value distinct from the edge
       // type, return false (contradiction found)
@@ -154,14 +133,14 @@ bool UnitPropagation(FactorGraph* graph, AssignmentStep* assignment) {
           // 2.1 Disable the clause if is satisfied by the assignment
           // (contains the assigned literal)
           if (edge->type == edge->variable->value) {
-            clause->Dissable(assignment);
+            clause->Dissable();
             break;
           }
 
           // 2.2 Disable each Edge of the clause that contain an assigned
           // Variable with the oposite literal type.
           else {
-            edge->Dissable(assignment);
+            edge->Dissable();
           }
         }
       }
@@ -172,26 +151,25 @@ bool UnitPropagation(FactorGraph* graph, AssignmentStep* assignment) {
         return false;
     }
 
-    std::cout << "UP:" << graph << std::endl;
+    // std::cout << "UP:" << graph << std::endl;
   }
 }
 
 // -----------------------------------------------------------------------------
 // Walksat
 // -----------------------------------------------------------------------------
-bool Walksat(FactorGraph* graph, ParamsWalksat params,
-             AssignmentStep* assignment) {
+bool Walksat(FactorGraph* graph) {
   // TODO Check that the parameters have correct values
 
   // 1. For try t = 0 to maxTries
-  for (uint t = 0; t < params.maxTries; t++) {
+  for (uint t = 0; t < WS_MAX_TRIES; t++) {
     // 1.1 Assign all Varibles with random values
     for (Variable* var : graph->GetUnassignedVariables()) {
-      var->AssignValue(utils::getRandomBool(), assignment);
+      var->AssignValue(utils::RandomGen::getRandomBool());
     }
 
     // 1.2 For flip f = 0 to maxFlips:
-    for (uint f = 0; f < params.maxFlips; f++) {
+    for (uint f = 0; f < WS_MAX_FLIPS; f++) {
       // 1.2.1 If FactorGraph is satisfied, return true
       if (graph->IsSAT()) return true;
 
@@ -210,7 +188,7 @@ bool Walksat(FactorGraph* graph, ParamsWalksat params,
 
       // Select random unsat clause
       std::uniform_int_distribution<> randomInt(0, unsatClauses.size() - 1);
-      int randIndex = randomInt(utils::randomGenerator);
+      int randIndex = randomInt(utils::RandomGen::randomGenerator);
       Clause* selectedClause = unsatClauses[randIndex];
       std::vector<Edge*> selectedClauseEdges =
           selectedClause->GetEnabledEdges();
@@ -247,14 +225,15 @@ bool Walksat(FactorGraph* graph, ParamsWalksat params,
         lowestBreakCountVar->AssignValue(!lowestBreakCountVar->value);
       } else {
         // probability 1 - p
-        if (utils::getRandomReal01() > params.noise) {
+        if (utils::RandomGen::getRandomReal01() > WS_NOISE) {
           lowestBreakCountVar->AssignValue(!lowestBreakCountVar->value);
         }
         // probability p
         else {
           std::uniform_int_distribution<> randEdgeIndexDist(
               0, selectedClauseEdges.size() - 1);
-          int randomEdgeIndex = randEdgeIndexDist(utils::randomGenerator);
+          int randomEdgeIndex =
+              randEdgeIndexDist(utils::RandomGen::randomGenerator);
           Variable* var = selectedClauseEdges[randomEdgeIndex]->variable;
           var->AssignValue(!var->value);
         }
@@ -269,35 +248,24 @@ bool Walksat(FactorGraph* graph, ParamsWalksat params,
 // -----------------------------------------------------------------------------
 // Survey Inspired Decimation
 // -----------------------------------------------------------------------------
-bool SID(FactorGraph* graph, float fraction, ParamsSP paramsSP,
-         ParamsWalksat paramsWalksat) {
+SIDResult SID(FactorGraph* graph, double fraction) {
   // Start metrics
-  utils::currentSPIterations = 0;
-
+  uint totalSPIt = 0;
+  std::chrono::steady_clock::time_point begin =
+      std::chrono::steady_clock::now();
   while (true) {
-    // 1. Run UNIT PROPAGTION
-    bool UPResult = UnitPropagation(graph);
-    // If a contradiction in found, return false
-    if (!UPResult) {
-      std::cout << "UP found a contradiction" << std::endl;
-      return false;
-    }
-    // If SAT, return true.
-    if (graph->IsSAT()) {
-      utils::totalSPIterations += utils::currentSPIterations;
-      std::cout << "IsSAT()" << std::endl;
-      return true;
-    }
-
-    // 2. Run SP. If does not converge return false.
-    bool SPResult = SurveyPropagation(graph, paramsSP);
-    if (!SPResult) {
+    // 1. Run SP. If does not converge return false.
+    SPResult spResult = SurveyPropagation(graph);
+    totalSPIt += spResult.iterations;
+    if (!spResult.converged) {
+      std::chrono::steady_clock::time_point end =
+          std::chrono::steady_clock::now();
       std::cout << "SP don't converge" << std::endl;
-      return false;
+      return {false, totalSPIt, begin, end};
     }
 
-    // 3. Decimate
-    // 3.1 If all surveys are trivial, return WALKSAT result
+    // 2. Decimate
+    // 2.2 If all surveys are trivial, return WALKSAT result
     bool allTrivial = true;
     for (Edge* edge : graph->GetEnabledEdges()) {
       if (edge->survey != 0.0) {
@@ -306,25 +274,26 @@ bool SID(FactorGraph* graph, float fraction, ParamsSP paramsSP,
       }
     }
     if (allTrivial) {
-      bool walksatResult = Walksat(graph, paramsWalksat);
+      bool walksatResult = Walksat(graph);
+      std::chrono::steady_clock::time_point end =
+          std::chrono::steady_clock::now();
       if (!walksatResult)
         std::cout << "Walksat can't found a solution" << std::endl;
       else {
-        utils::totalSPIterations += utils::currentSPIterations;
         std::cout << "Solved with Walksat" << std::endl;
       }
-      return walksatResult;
+      return {walksatResult, totalSPIt, begin, end};
     }
 
-    // 2.2 Otherwise, evaluate all variables, assign a set of them and clean
+    // 2.1 Otherwise, evaluate all variables, assign a set of them and clean
     // the graph
     std::vector<Variable*> unassignedVariables =
         graph->GetUnassignedVariables();
-    std::cout << std::endl;
+
     for (Variable* variable : unassignedVariables) {
       EvaluateVariable(variable);
-      std::cout << variable->id << "(" << variable->evalValue << ")"
-                << std::endl;
+      // std::cout << variable->id << "(" << variable->evalValue << ")"
+      //           << std::endl;
     }
 
     // Assign minimum 1 variable
@@ -338,8 +307,8 @@ bool SID(FactorGraph* graph, float fraction, ParamsSP paramsSP,
     for (int i = 0; i < assignFraction; i++) {
       Variable* var = unassignedVariables[i];
       bool newValue = var->evalValue > 0;
-      std::cout << "Assigned: X" << var->id << " - "
-                << (newValue ? "true" : "false") << std::endl;
+      // std::cout << "Assigned: X" << var->id << " - "
+      //           << (newValue ? "true" : "false") << std::endl;
       var->AssignValue(newValue);
       for (Edge* edge : var->GetEnabledEdges()) {
         if (edge->type == var->value) {
@@ -350,7 +319,22 @@ bool SID(FactorGraph* graph, float fraction, ParamsSP paramsSP,
       }
     }
 
-    std::cout << graph << std::endl;
+    // 4. Run UNIT PROPAGTION
+    bool UPResult = UnitPropagation(graph);
+    // If a contradiction in found, return false
+    if (!UPResult) {
+      std::chrono::steady_clock::time_point end =
+          std::chrono::steady_clock::now();
+      std::cout << "UP found a contradiction" << std::endl;
+      return {false, totalSPIt, begin, end};
+    }
+    // If SAT, return true.
+    if (graph->IsSAT()) {
+      std::chrono::steady_clock::time_point end =
+          std::chrono::steady_clock::now();
+      std::cout << "Solved with UP" << std::endl;
+      return {true, totalSPIt, begin, end};
+    }
   };
 }
 
@@ -359,9 +343,9 @@ void EvaluateVariable(Variable* variable) {
   // ViP = V+(i) -> substed of V(i) where i appears unnegated
   // ViN = V-(i) -> substed of V(i) where i appears negated
   // Product values initialization for all a->i survey values
-  long double PVi0 = 1.0;
-  long double PViP = 1.0;
-  long double PViN = 1.0;
+  double PVi0 = 1.0;
+  double PViP = 1.0;
+  double PViN = 1.0;
 
   // For each a->i
   for (Edge* ai : variable->GetEnabledEdges()) {
@@ -377,15 +361,18 @@ void EvaluateVariable(Variable* variable) {
   }
 
   // Auxiliar variables to calculate Wi(+) and Wi(-)
-  long double PiP = (1.0 - PViP) * PViN;
-  long double PiN = (1.0 - PViN) * PViP;
-  long double Pi0 = PVi0;
+  double PiP = (1.0 - PViP) * PViN;
+  double PiN = (1.0 - PViN) * PViP;
+  double Pi0 = PVi0;
 
   // Calculate 'biases'
-  long double WiP = PiP / (PiP + PiN + Pi0);  // Wi(+)
-  long double WiN = PiN / (PiP + PiN + Pi0);  // Wi(-)
+  double WiP = PiP / (PiP + PiN + Pi0);  // Wi(+)
+  double WiN = PiN / (PiP + PiN + Pi0);  // Wi(-)
 
-  variable->evalValue = WiP - WiN;
+  if (std::isnan(WiP) || std::isnan(WiN))
+    variable->evalValue = 0.0;
+  else
+    variable->evalValue = WiP - WiN;
 }
 
 }  // namespace sat

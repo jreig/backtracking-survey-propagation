@@ -5,6 +5,7 @@ in real-world SAT instances" belonging to the Master's Degree in Artificial
 Intelligence Research organized by the UIMP and AEPIA.
 
 - [Objective](#objective)
+- [Experiments](#experiments)
 - [FactorGraph](#factorgraph)
 - [Algorithms](#algorithms)
   - [Survey Propagation](#survey-propagation)
@@ -12,16 +13,70 @@ Intelligence Research organized by the UIMP and AEPIA.
   - [Walksat](#walksat)
   - [Survey Inspired Decimation](#survey-inspired-decimation)
   - [Backtracking Survey Propagation](#backtracking-survey-propagation)
-- [Experiments](#experiments)
 - [Develop](#develop)
 - [Test](#test)
 - [References](#references)
 
+To read how to run experiments go [here](#run-experiments)
+
 # Objective
 
-The main objective of this project is to implement the Backtraking Survey Propagation
-algorithm (BSP) and the Survey Inspired Decimation algorithm (SID), evaluate them and
-test the results against those obtained in \[[1](#references)\].
+The main objective of this project is to implement the Survey Propagation
+algorithm (SP) and the Survey Inspired Decimation algorithm (SID), evaluate them
+using diferent CNF generators and test the results against those obtained in \[[1](#references)\].
+
+# Experiments
+
+As stablished previously, the main objective of this project is to evaluate SP
+and SID and test the results against those obtained in \[[1](#references)\].
+
+in order to do so, the following experiments are done:
+
+## Base Experiment
+
+This experiment executes the SID algorithm on 50 random 3-SAT CNF with multiple
+configurations to obtain the percentage of CNF that can be solved.
+
+Configurations:
+
+- N (variables) = 25000, 50000, 100000
+- α (clauses/variables ratio) = 4.21, 4.22, 4.23, 4.24
+- f (assignment fraction) = 4%, 2%, 1%, .5%, .25%, .125%
+
+## Community CNF generation
+
+This experiment executes the SP algorithm on 50 3-SAT CNF generated with the
+community generator, tested with multiple configurations to obtain the percentage
+of CNF that can be solved.
+
+Configurations:
+
+- N (variables) = 25000, 50000, 100000
+- α (clauses/variables ratio) = 4.21, 4.22, 4.23, 4.24
+- f (assignment fraction) = 4%, 2%, 1%, .5%, .25%, .125%
+
+## Run experiments
+
+The following steps must be done in order to execute the experiments:
+
+1. Compile and build:
+
+```
+$ make
+```
+
+2. Generate 3-SAT CNF with the script of the desired generator:
+
+```
+$ ./libs/cnf-generator/generate-random.sh N α
+$ ./libs/cnf-generator/generate-community.sh N α
+```
+
+3. Execute experiment and save the result (change output file with correct values):
+
+```
+$ ./build/experiment N α [random|community] | tee ./experiments/result/result-[random|community]-[N]-[α].txt
+```
 
 # FactorGraph
 
@@ -158,43 +213,6 @@ OUTPUT: True if SAT, false if UNSAT or SP don't converge
 4. Go to step 1.
 ```
 
-## Backtracking Survey Propagation
-
--- TODO --
-
-# Experiments
-
-As stablished previously, the main objective of this project is to evaluate BSP
-and SID and test the results against those obtained in \[[1](#references)\].
-
-in order to do so, the following experiments are done:
-
-### Base Experiment
-
--- TODO --
-
-This experiment executes the SID algorithm on 50 random 3-SAT CNF with multiple
-configurations to obtain the percentage of CNF that can be solved.
-
-Configurations:
-
-- N (variables) = 25000, 50000, 100000
-- α (clauses/variables ratio) = 4.21, 4.22, 4.23, 4.24
-- f (assignment fraction) = 4%, 2%, 1%, .5%, .25%, .125%
-
-### Backtracking Experiment
-
--- TODO --
-
-This experiment executes the BSP algorithm on 50 random 3-SAT CNF with multiple
-configurations to obtain the percentage of CNF that can be solved.
-
-Configurations:
-
-- N (variables) = 25000, 50000, 100000
-- α (clauses/variables ratio) = 4.21, 4.22, 4.23, 4.24
-- f (assignment fraction) = 4%, 2%, 1%, .5%, .25%, .125%
-
 # Develop
 
 -- TODO --
@@ -210,9 +228,10 @@ Dependencies:
 
 To run the test execute the following commands:
 
-`make build-test`
-
-`make run-test`
+```
+$ make build-test
+$ make run-test
+```
 
 # References
 

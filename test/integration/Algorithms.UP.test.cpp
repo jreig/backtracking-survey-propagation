@@ -12,15 +12,11 @@ TEST_CASE("Algorithm - Unit Propagation (no unit clauses)", "[integration]") {
   sat::FactorGraph* graph = new sat::FactorGraph(file);
   file.close();
 
-  sat::utils::randomGenerator.seed(7357);
+  sat::utils::RandomGen::setSeed(7357);
 
-  sat::AssignmentStep* step = new sat::AssignmentStep();
-  bool result = sat::UnitPropagation(graph, step);
+  bool result = sat::UnitPropagation(graph);
 
   CHECK(result);
-  CHECK(step->variables.size() == 0);
-  CHECK(step->clauses.size() == 0);
-  CHECK(step->edges.size() == 0);
 };
 
 TEST_CASE("Algorithm - Unit Propagation (1 propagation)", "[integration]") {
@@ -29,15 +25,11 @@ TEST_CASE("Algorithm - Unit Propagation (1 propagation)", "[integration]") {
   sat::FactorGraph* graph = new sat::FactorGraph(file);
   file.close();
 
-  sat::utils::randomGenerator.seed(7357);
+  sat::utils::RandomGen::setSeed(7357);
 
-  sat::AssignmentStep* step = new sat::AssignmentStep();
-  bool result = sat::UnitPropagation(graph, step);
+  bool result = sat::UnitPropagation(graph);
 
   CHECK(result);
-  CHECK(step->variables.size() == 1);
-  CHECK(step->clauses.size() == 2);
-  CHECK(step->edges.size() == 5);
 };
 
 TEST_CASE("Algorithm - Unit Propagation (2 propagation)", "[integration]") {
@@ -46,15 +38,11 @@ TEST_CASE("Algorithm - Unit Propagation (2 propagation)", "[integration]") {
   sat::FactorGraph* graph = new sat::FactorGraph(file);
   file.close();
 
-  sat::utils::randomGenerator.seed(7357);
+  sat::utils::RandomGen::setSeed(7357);
 
-  sat::AssignmentStep* step = new sat::AssignmentStep();
-  bool result = sat::UnitPropagation(graph, step);
+  bool result = sat::UnitPropagation(graph);
 
   CHECK(result);
-  CHECK(step->variables.size() == 2);
-  CHECK(step->clauses.size() == 4);
-  CHECK(step->edges.size() == 9);
 };
 
 TEST_CASE("Algorithm - Unit Propagation (2 unit clauses)", "[integration]") {
@@ -63,15 +51,11 @@ TEST_CASE("Algorithm - Unit Propagation (2 unit clauses)", "[integration]") {
   sat::FactorGraph* graph = new sat::FactorGraph(file);
   file.close();
 
-  sat::utils::randomGenerator.seed(7357);
+  sat::utils::RandomGen::setSeed(7357);
 
-  sat::AssignmentStep* step = new sat::AssignmentStep();
-  bool result = sat::UnitPropagation(graph, step);
+  bool result = sat::UnitPropagation(graph);
 
   CHECK(result);
-  CHECK(step->variables.size() == 2);
-  CHECK(step->clauses.size() == 5);
-  CHECK(step->edges.size() == 10);
 };
 
 TEST_CASE("Algorithm - Unit Propagation (contradiction 1)", "[integration]") {
@@ -80,13 +64,12 @@ TEST_CASE("Algorithm - Unit Propagation (contradiction 1)", "[integration]") {
   sat::FactorGraph* graph = new sat::FactorGraph(file);
   file.close();
 
-  sat::utils::randomGenerator.seed(7357);
+  sat::utils::RandomGen::setSeed(7357);
 
   // Forcing variable contradiction
   graph->GetUnassignedVariables()[0]->AssignValue(false);
 
-  sat::AssignmentStep* step = new sat::AssignmentStep();
-  bool result = sat::UnitPropagation(graph, step);
+  bool result = sat::UnitPropagation(graph);
 
   REQUIRE_FALSE(result);
 };
@@ -97,10 +80,9 @@ TEST_CASE("Algorithm - Unit Propagation (contradiction 2)", "[integration]") {
   sat::FactorGraph* graph = new sat::FactorGraph(file);
   file.close();
 
-  sat::utils::randomGenerator.seed(7357);
+  sat::utils::RandomGen::setSeed(7357);
 
-  sat::AssignmentStep* step = new sat::AssignmentStep();
-  bool result = sat::UnitPropagation(graph, step);
+  bool result = sat::UnitPropagation(graph);
 
   REQUIRE_FALSE(result);
 };

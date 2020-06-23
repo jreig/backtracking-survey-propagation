@@ -12,9 +12,9 @@ TEST_CASE("Algorithm - Walksat (solution found)", "[integration]") {
   sat::FactorGraph* graph = new sat::FactorGraph(file);
   file.close();
 
-  sat::utils::randomGenerator.seed(7357);
+  sat::utils::RandomGen::setSeed(7357);
 
-  bool result = sat::Walksat(graph, {100, 100, 0.5f});
+  bool result = sat::Walksat(graph);
 
   REQUIRE(result);
   for (sat::Variable* var : graph->GetAllVariables()) {
@@ -28,9 +28,9 @@ TEST_CASE("Algorithm - Walksat (solution NOT found)", "[integration]") {
   sat::FactorGraph* graph = new sat::FactorGraph(file);
   file.close();
 
-  sat::utils::randomGenerator.seed(7357);
+  sat::utils::RandomGen::setSeed(7357);
 
-  bool result = sat::Walksat(graph, {100, 100, 0.5f});
+  bool result = sat::Walksat(graph);
 
   REQUIRE_FALSE(result);
 };

@@ -1,8 +1,8 @@
 #!/bin/bash
 
 k=3;
-variables=(3)
-alpha=(4.21)
+variables=($1)
+alpha=($2)
 # variables=(25000 50000 100000)
 # alpha=(4.21 4.22 4.23 4.24)
 for n in "${variables[@]}";do
@@ -11,7 +11,7 @@ for n in "${variables[@]}";do
 
     for i in {1..50};do
       seed=`expr "$i" + "$m"`
-      echo $seed
+      # echo $seed
       CNF=experiments/instances/random_${k}SAT_${n}N_${ratio}R_${i}.cnf
       ./libs/cnf-generator/random -n $n -m $m -s $seed -o $CNF
     done;

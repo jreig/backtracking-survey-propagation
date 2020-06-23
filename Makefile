@@ -55,7 +55,7 @@ $(BUILD_DIR)/$(EXP_TARGET): $(EXP_OBJ)
 	$(CXX) $(FLAGS) $^ -o $@
 	
 run-experiments: 
-	@./$(BUILD_DIR)/$(EXP_TARGET)
+	@./$(BUILD_DIR)/$(EXP_TARGET) | tee ${EXP_RESULT_DIR}/last_result.txt
 
 clean-src:
 	-@rm -rvf $(BUILD_DIR)/${SRC_DIR}/*

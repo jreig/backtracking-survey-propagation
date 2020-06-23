@@ -1,41 +1,41 @@
 #pragma once
 
 #include <FactorGraph.hpp>
+#include <chrono>
 
 namespace sat {
 
 // -----------------------------------------------------------------------------
 // Survey Propagation
 // -----------------------------------------------------------------------------
-struct ParamsSP {
-  uint maxIterations = 1000;
-  float epsilon = 0.001f;
+struct SPResult {
+  bool converged;
+  unsigned int iterations;
 };
-bool SurveyPropagation(FactorGraph* graph, ParamsSP params);
+SPResult SurveyPropagation(FactorGraph* graph);
 
 void UpdateSurvey(Edge* edge);
 
 // -----------------------------------------------------------------------------
 // Unit Propagation
 // -----------------------------------------------------------------------------
-bool UnitPropagation(FactorGraph* graph, AssignmentStep* assignment = nullptr);
+bool UnitPropagation(FactorGraph* graph);
 
 // -----------------------------------------------------------------------------
 // Walksat
 // -----------------------------------------------------------------------------
-struct ParamsWalksat {
-  uint maxTries = 1000;
-  uint maxFlips = 1000;
-  float noise = 0.54f;
-};
-bool Walksat(FactorGraph* graph, ParamsWalksat params,
-             AssignmentStep* assignment = nullptr);
+bool Walksat(FactorGraph* graph);
 
 // -----------------------------------------------------------------------------
 // Survey Inspired Decimation
 // -----------------------------------------------------------------------------
-bool SID(FactorGraph* graph, float fraction, ParamsSP paramsSP,
-         ParamsWalksat paramsWalksat);
+struct SIDResult {
+  bool SAT;
+  unsigned int totalSPIterations;
+  std::chrono::steady_clock::time_point begin;
+  std::chrono::steady_clock::time_point end;
+};
+SIDResult SID(FactorGraph* graph, double fraction);
 
 void EvaluateVariable(Variable* variable);
 

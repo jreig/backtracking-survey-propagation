@@ -11,7 +11,7 @@ namespace sat {
 // Variable class
 // =============================================================================
 Variable::Variable(const unsigned id)
-    : id(id), evalValue(0.0f), assigned(_assigned), value(_value) {}
+    : id(id), evalValue(0.0), assigned(_assigned), value(_value) {}
 
 std::vector<Edge*> Variable::GetEnabledEdges() {
   std::vector<Edge*> enabledNeigbours;
@@ -21,11 +21,9 @@ std::vector<Edge*> Variable::GetEnabledEdges() {
   return enabledNeigbours;
 }
 
-void Variable::AssignValue(const bool newValue, AssignmentStep* stp) {
+void Variable::AssignValue(const bool newValue) {
   _value = newValue;
   _assigned = true;
-
-  if (stp != nullptr) stp->variables.push_back(this);
 }
 
 // std::ostream& operator<<(std::ostream& os, const Variable* var) {
@@ -47,19 +45,19 @@ std::vector<Edge*> Clause::GetEnabledEdges() {
   return enabledNeigbours;
 }
 
-void Clause::Dissable(AssignmentStep* stp) {
+void Clause::Dissable() {
   _enabled = false;
-  if (stp != nullptr) stp->clauses.push_back(this);
 
   for (Edge* edge : _allNeighbourEdges) {
-    if (edge->enabled) edge->Dissable(stp);
+    if (edge->enabled) edge->Dissable();
   }
 }
 
 bool Clause::IsSAT() const {
   for (Edge* edge : _allNeighbourEdges) {
-    if (!edge->enabled) continue;
-    if (edge->type == edge->variable->value) return true;
+    if (edge->enabled && edge->variable->assigned &&
+        edge->type == edge->variable->value)
+      return true;
   }
 
   return false;
@@ -82,10 +80,7 @@ Edge::Edge(bool type, Clause* clause, Variable* variable)
       survey(0.0f),
       enabled(_enabled) {}
 
-void Edge::Dissable(AssignmentStep* stp) {
-  _enabled = false;
-  if (stp != nullptr) stp->edges.push_back(this);
-}
+void Edge::Dissable() { _enabled = false; }
 
 std::ostream& operator<<(std::ostream& os, const Edge* e) {
   os << "C" << e->clause->id << " <---> ";
@@ -167,7 +162,6 @@ FactorGraph::~FactorGraph() {
   for (Clause* clause : _clauses) delete clause;
   for (Variable* variable : _variables) delete variable;
   for (Edge* edge : _edges) delete edge;
-  for (AssignmentStep* step : _assignmentSteps) delete step;
 }
 
 std::vector<Variable*> FactorGraph::GetUnassignedVariables() {
@@ -196,20 +190,10 @@ std::vector<Edge*> FactorGraph::GetEnabledEdges() {
 
 bool FactorGraph::IsSAT() const {
   for (Clause* clause : _clauses) {
-    if (!clause->enabled) continue;
-    if (!clause->IsSAT()) return false;
+    if (clause->enabled && !clause->IsSAT()) return false;
   }
 
   return true;
-}
-
-void FactorGraph::RevertLastAssigment() {
-  AssignmentStep* lastStep = _assignmentSteps.back();
-  _assignmentSteps.pop_back();
-
-  for (Variable* variable : lastStep->variables) variable->Unassign();
-  for (Clause* clause : lastStep->clauses) clause->Enable();
-  for (Edge* edge : lastStep->edges) edge->Enable();
 }
 
 std::ostream& operator<<(std::ostream& os, FactorGraph* fg) {
