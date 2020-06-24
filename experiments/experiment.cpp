@@ -49,7 +49,7 @@ int main(int argc, char* argv[]) {
     return -1;
   }
 
-  double fractionParams[6] = {0.04, 0.02, 0.01, 0.005, 0.0025, 0.00125};
+  double fractionParams[1] = {0.02};
   int totalCnfInstances = CNF_INSTANCES;
   int totalVariables = atoi(argv[1]);
   double alpha = atof(argv[2]);
@@ -75,14 +75,17 @@ int main(int argc, char* argv[]) {
   cout << " - Seed = " << seed << endl;
   cout << endl;
 
-  cout << "Setting up experiment environment...";
+  cout << "Setting up experiment environment..." << endl;
 
-  if (seed != 0) utils::RandomGen::setSeed(seed);
+  if (seed != 0)
+    utils::RandomGen::setSeed(seed);
+  else
+    cout << "Initial seed: " << utils::RandomGen::initialSeed << endl;
   // Get random CNF instances
   vector<string> paths =
       GetRandomCNFFiles(totalCnfInstances, totalVariables, alpha, generator);
 
-  cout << " - Done!" << endl;
+  cout << "Done!" << endl;
 
   // ---------------------------------------------------------------------------
   // Run experiments

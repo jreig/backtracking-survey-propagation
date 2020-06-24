@@ -1,4 +1,5 @@
 #include <Utils.hpp>
+#include <iostream>
 #include <sstream>
 
 namespace sat::utils {
@@ -7,7 +8,8 @@ namespace sat::utils {
 // Random number generator
 // =============================================================================
 std::random_device RandomGen::rd;
-std::mt19937 RandomGen::randomGenerator(RandomGen::rd());
+unsigned int RandomGen::initialSeed = RandomGen::rd();
+std::mt19937 RandomGen::randomGenerator(initialSeed);
 std::uniform_int_distribution<> RandomGen::randomBoolUD(0, 1);
 std::uniform_real_distribution<> RandomGen::randomReal01UD(0, 1);
 

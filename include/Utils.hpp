@@ -11,6 +11,7 @@ namespace sat::utils {
 class RandomGen {
  public:
   static std::random_device rd;
+  static unsigned int initialSeed;
   static std::mt19937 randomGenerator;
   static std::uniform_int_distribution<> randomBoolUD;
   static std::uniform_real_distribution<> randomReal01UD;
