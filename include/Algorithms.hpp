@@ -30,12 +30,13 @@ bool Walksat(FactorGraph* graph);
 // Survey Inspired Decimation
 // -----------------------------------------------------------------------------
 struct SIDResult {
+  bool converged;
   bool SAT;
   unsigned int totalSPIterations;
   std::chrono::steady_clock::time_point begin;
   std::chrono::steady_clock::time_point end;
 };
-SIDResult SID(FactorGraph* graph, double fraction);
+SIDResult SID(FactorGraph* graph, float fraction);
 
 void EvaluateVariable(Variable* variable);
 

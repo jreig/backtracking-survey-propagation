@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <cmath>
+#include <sstream>
 #include <vector>
 
 // Project headers
@@ -29,14 +30,17 @@ SPResult SurveyPropagation(FactorGraph* graph) {
     // 3 - Update the survey value of each edge
     allEdgesConverged = true;
     for (Edge* edge : edges) {
-      double previousSurveyValue = edge->survey;
+      float previousSurveyValue = edge->survey;
       UpdateSurvey(edge);
+      // std::cout << edge << " (" << previousSurveyValue << ")" << std::endl;
 
       // Check if edge converged
       bool hasConverged =
           std::abs(edge->survey - previousSurveyValue) < SP_EPSILON;
       if (!hasConverged) allEdgesConverged = false;
     }
+
+    // std::cout << std::endl;
 
     totalIt += 1;
   }
@@ -46,16 +50,16 @@ SPResult SurveyPropagation(FactorGraph* graph) {
 
 void UpdateSurvey(Edge* ai) {
   // Param edge is a->i
-  double Sai = 1.0;
+  float Sai = 1.0f;
 
   // For each a->j when j != i
   for (Edge* aj : ai->clause->GetEnabledEdges()) {
     if (aj == ai) continue;  // j == i
 
     // Product values initalization for all b->j survey values
-    double Pubj = 1.0;
-    double Psbj = 1.0;
-    double P0bj = 1.0;
+    float Pubj = 1.0f;
+    float Psbj = 1.0f;
+    float P0bj = 1.0f;
 
     // For each b->j when b != a
     for (Edge* bj : aj->variable->GetEnabledEdges()) {
@@ -63,28 +67,28 @@ void UpdateSurvey(Edge* ai) {
 
       if (bj->type != aj->type) {
         // Update Pubj if both edges have different edge type -> b€Vua(j)
-        Pubj = Pubj * (1.0 - bj->survey);
+        Pubj = Pubj * (1.0f - bj->survey);
       }
       if (bj->type == aj->type) {
         // Update Psbj if both edges have same edge type -> b€Vsa(j)
-        Psbj = Psbj * (1.0 - bj->survey);
+        Psbj = Psbj * (1.0f - bj->survey);
       }
 
-      P0bj = P0bj * (1.0 - bj->survey);
+      P0bj = P0bj * (1.0f - bj->survey);
     }
 
     // Product values for all a->j survey values (Equation 26)
-    double Puaj = (1.0 - Pubj) * Psbj;
-    double Psaj = (1.0 - Psbj) * Pubj;
-    double P0aj = P0bj;
+    float Puaj = (1.0f - Pubj) * Psbj;
+    float Psaj = (1.0f - Psbj) * Pubj;
+    float P0aj = P0bj;
 
     // Update a->i survey value (Equation 27)
-    double div = Puaj / (Puaj + Psaj + P0aj);
+    float div = Puaj / (Puaj + Psaj + P0aj);
 
     // Some survey may result in a 0/0 division. To avoid errors, the result
     // is estblished to 0 to make the survey trivial
     if (std::isnan(div)) {
-      Sai = 0.0;
+      Sai = 0.0f;
       break;
     } else {
       Sai = Sai * div;
@@ -159,6 +163,7 @@ bool UnitPropagation(FactorGraph* graph) {
 // Walksat
 // -----------------------------------------------------------------------------
 bool Walksat(FactorGraph* graph) {
+  // return true;
   // TODO Check that the parameters have correct values
 
   // 1. For try t = 0 to maxTries
@@ -248,27 +253,41 @@ bool Walksat(FactorGraph* graph) {
 // -----------------------------------------------------------------------------
 // Survey Inspired Decimation
 // -----------------------------------------------------------------------------
-SIDResult SID(FactorGraph* graph, double fraction) {
+SIDResult SID(FactorGraph* graph, float fraction) {
   // Start metrics
   uint totalSPIt = 0;
   std::chrono::steady_clock::time_point begin =
       std::chrono::steady_clock::now();
   while (true) {
     // 1. Run SP. If does not converge return false.
+    // std::vector<Edge*> edges = graph->GetEnabledEdges();
+    // std::ostringstream ss;
+    // std::string prevSP = "";
+    // for (Edge* edge : edges) {
+    //   ss << edge << std::endl;
+    //   prevSP = ss.str();
+    //   break;
+    // }
     SPResult spResult = SurveyPropagation(graph);
     totalSPIt += spResult.iterations;
     if (!spResult.converged) {
+      // std::cout << prevSP << std::endl;
+      // std::cout << "-----------------" << std::endl;
+      // for (Edge* edge : edges) {
+      //   std::cout << edge << std::endl;
+      //   break;
+      // }
       std::chrono::steady_clock::time_point end =
           std::chrono::steady_clock::now();
       std::cout << "SP don't converge" << std::endl;
-      return {false, totalSPIt, begin, end};
+      return {false, false, totalSPIt, begin, end};
     }
 
     // 2. Decimate
     // 2.2 If all surveys are trivial, return WALKSAT result
     bool allTrivial = true;
     for (Edge* edge : graph->GetEnabledEdges()) {
-      if (edge->survey != 0.0) {
+      if (edge->survey != 0.0f) {
         allTrivial = false;
         break;
       }
@@ -282,7 +301,7 @@ SIDResult SID(FactorGraph* graph, double fraction) {
       else {
         std::cout << "Solved with Walksat" << std::endl;
       }
-      return {walksatResult, totalSPIt, begin, end};
+      return {true, walksatResult, totalSPIt, begin, end};
     }
 
     // 2.1 Otherwise, evaluate all variables, assign a set of them and clean
@@ -292,7 +311,7 @@ SIDResult SID(FactorGraph* graph, double fraction) {
 
     for (Variable* variable : unassignedVariables) {
       EvaluateVariable(variable);
-      // std::cout << variable->id << "(" << variable->evalValue << ")"
+      // std::cout << "X" << variable->id << "(" << variable->evalValue << ")"
       //           << std::endl;
     }
 
@@ -319,21 +338,50 @@ SIDResult SID(FactorGraph* graph, double fraction) {
       }
     }
 
+    // For each Clause in the graph:
+    // for (Clause* clause : graph->GetEnabledClauses()) {
+    //   for (Edge* edge : clause->GetEnabledEdges()) {
+    //     if (edge->variable->assigned) {
+    //       // 2.1 Disable the clause if is satisfied by the assignment
+    //       // (contains the assigned literal)
+    //       if (edge->type == edge->variable->value) {
+    //         clause->Dissable();
+    //         break;
+    //       }
+
+    //       // 2.2 Disable each Edge of the clause that contain an assigned
+    //       // Variable with the oposite literal type.
+    //       else {
+    //         edge->Dissable();
+    //       }
+    //     }
+    //   }
+
+    //   // If the Clause is enabled and have 0 enabled Edges,
+    //   // return false (contradiction found).
+    //   if (clause->enabled && clause->GetEnabledEdges().size() == 0) {
+    //     std::chrono::steady_clock::time_point end =
+    //         std::chrono::steady_clock::now();
+    //     std::cout << "SID Contradiction found" << std::endl;
+    //     return {false, totalSPIt, begin, end};
+    //   }
+    // }
+
     // 4. Run UNIT PROPAGTION
-    bool UPResult = UnitPropagation(graph);
-    // If a contradiction in found, return false
-    if (!UPResult) {
-      std::chrono::steady_clock::time_point end =
-          std::chrono::steady_clock::now();
-      std::cout << "UP found a contradiction" << std::endl;
-      return {false, totalSPIt, begin, end};
-    }
+    // bool UPResult = UnitPropagation(graph);
+    // // If a contradiction in found, return false
+    // if (!UPResult) {
+    //   std::chrono::steady_clock::time_point end =
+    //       std::chrono::steady_clock::now();
+    //   std::cout << "UP found a contradiction" << std::endl;
+    //   return {false, totalSPIt, begin, end};
+    // }
     // If SAT, return true.
     if (graph->IsSAT()) {
       std::chrono::steady_clock::time_point end =
           std::chrono::steady_clock::now();
       std::cout << "Solved with UP" << std::endl;
-      return {true, totalSPIt, begin, end};
+      return {true, true, totalSPIt, begin, end};
     }
   };
 }
@@ -343,34 +391,34 @@ void EvaluateVariable(Variable* variable) {
   // ViP = V+(i) -> substed of V(i) where i appears unnegated
   // ViN = V-(i) -> substed of V(i) where i appears negated
   // Product values initialization for all a->i survey values
-  double PVi0 = 1.0;
-  double PViP = 1.0;
-  double PViN = 1.0;
+  float PVi0 = 1.0f;
+  float PViP = 1.0f;
+  float PViN = 1.0f;
 
   // For each a->i
   for (Edge* ai : variable->GetEnabledEdges()) {
     if (ai->type) {
       // Update PViP if variable i appears unnegated in clause a
-      PViP = PViP * (1.0 - ai->survey);
+      PViP = PViP * (1.0f - ai->survey);
     } else {
       // Update PViN if variable i appears negated in clause a
-      PViN = PViN * (1.0 - ai->survey);
+      PViN = PViN * (1.0f - ai->survey);
     }
 
-    PVi0 = PVi0 * (1.0 - ai->survey);
+    PVi0 = PVi0 * (1.0f - ai->survey);
   }
 
   // Auxiliar variables to calculate Wi(+) and Wi(-)
-  double PiP = (1.0 - PViP) * PViN;
-  double PiN = (1.0 - PViN) * PViP;
-  double Pi0 = PVi0;
+  float PiP = (1.0f - PViP) * PViN;
+  float PiN = (1.0f - PViN) * PViP;
+  float Pi0 = PVi0;
 
   // Calculate 'biases'
-  double WiP = PiP / (PiP + PiN + Pi0);  // Wi(+)
-  double WiN = PiN / (PiP + PiN + Pi0);  // Wi(-)
+  float WiP = PiP / (PiP + PiN + Pi0);  // Wi(+)
+  float WiN = PiN / (PiP + PiN + Pi0);  // Wi(-)
 
   if (std::isnan(WiP) || std::isnan(WiN))
-    variable->evalValue = 0.0;
+    variable->evalValue = 0.0f;
   else
     variable->evalValue = WiP - WiN;
 }

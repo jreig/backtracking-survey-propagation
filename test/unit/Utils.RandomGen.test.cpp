@@ -32,9 +32,9 @@ TEST_CASE("Utils - RandomGen (real)", "[unit]") {
     results[i] = RandomGen::getRandomReal01();
   }
 
-  CHECK(results[0] - 0.1297653309 < 0.001);
-  CHECK(results[1] - 0.5826444825 < 0.001);
-  CHECK(results[2] - 0.021574746949 < 0.001);
-  CHECK(results[3] - 0.6759686312 < 0.001);
-  CHECK(results[4] - 0.8261042689 < 0.001);
+  CHECK(results[0] - 0.1297653309f < 0.001f);
+  CHECK(results[1] - 0.5826444825f < 0.001f);
+  CHECK(results[2] - 0.021574746949f < 0.001f);
+  CHECK(results[3] - 0.6759686312f < 0.001f);
+  CHECK(results[4] - 0.8261042689f < 0.001f);
 };

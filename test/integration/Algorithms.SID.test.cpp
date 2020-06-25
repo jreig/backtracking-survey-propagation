@@ -14,7 +14,7 @@ TEST_CASE("Algorithm - SID (walksat solution)", "[integration]") {
 
   sat::utils::RandomGen::setSeed(7357);
 
-  sat::SIDResult result = sat::SID(graph, 0.0);
+  sat::SIDResult result = sat::SID(graph, 0.0f);
 
   REQUIRE(result.SAT);
   REQUIRE(result.totalSPIterations == 5);

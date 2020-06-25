@@ -8,12 +8,12 @@
 
 // Survey Propagation parameters
 #define SP_MAX_ITERATIONS 1000
-#define SP_EPSILON 0.001
+#define SP_EPSILON 0.001f
 
 // WALKSAT parameters
 #define WS_MAX_TRIES 1000
 #define WS_MAX_FLIPS 1000
-#define WS_NOISE 0.5
+#define WS_NOISE 0.5f
 
 // CNF instances
 #define CNF_INSTANCES 50

@@ -17,7 +17,7 @@ TEST_CASE("Algorithm - Survey Propagation (converge)", "[integration]") {
   sat::SPResult result = sat::SurveyPropagation(graph);
 
   for (sat::Edge* edge : graph->GetEnabledEdges()) {
-    CHECK(edge->survey < 0.0001);
+    CHECK(edge->survey < 0.0001f);
   }
 
   REQUIRE(result.converged);

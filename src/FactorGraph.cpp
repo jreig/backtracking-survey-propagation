@@ -11,7 +11,7 @@ namespace sat {
 // Variable class
 // =============================================================================
 Variable::Variable(const unsigned id)
-    : id(id), evalValue(0.0), assigned(_assigned), value(_value) {}
+    : id(id), evalValue(0.0f), assigned(_assigned), value(_value) {}
 
 std::vector<Edge*> Variable::GetEnabledEdges() {
   std::vector<Edge*> enabledNeigbours;

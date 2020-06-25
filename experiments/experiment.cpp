@@ -21,7 +21,7 @@ using namespace sat;
 // of the file paths.
 // CNFs are stored in DIMACS files in the experiments/instances/ folder.
 // ---------------------------------------------------------------------------
-vector<string> GetRandomCNFFiles(int totalInstances, int N, double alpha,
+vector<string> GetRandomCNFFiles(int totalInstances, int N, float alpha,
                                  const string& generator) {
   vector<string> paths;
 
@@ -32,6 +32,7 @@ vector<string> GetRandomCNFFiles(int totalInstances, int N, double alpha,
        << ".cnf";
     string path = ss.str();
     paths.push_back(path);
+    // break;
   }
 
   return paths;
@@ -49,10 +50,10 @@ int main(int argc, char* argv[]) {
     return -1;
   }
 
-  double fractionParams[1] = {0.02};
+  float fractionParams[1] = {0.02f};
   int totalCnfInstances = CNF_INSTANCES;
   int totalVariables = atoi(argv[1]);
-  double alpha = atof(argv[2]);
+  float alpha = atof(argv[2]);
   string generator = "random";
   if (argc == 4) {
     if (strcmp(argv[3], "random") == 0 || strcmp(argv[3], "community") == 0) {
@@ -62,7 +63,7 @@ int main(int argc, char* argv[]) {
       return -1;
     }
   }
-  int seed = atoi(argv[4]);
+  unsigned int seed = atoi(argv[4]);
 
   cout << "===========================================================" << endl;
   cout << "==                RUNNING BASE EXPERIMENT                ==" << endl;
@@ -92,7 +93,7 @@ int main(int argc, char* argv[]) {
   // ---------------------------------------------------------------------------
   int experimentId = 1;
 
-  for (double fraction : fractionParams) {
+  for (float fraction : fractionParams) {
     cout << endl << endl;
     cout << "------------------------------" << endl;
     cout << "Experiment " << experimentId << ":" << endl;
@@ -101,6 +102,7 @@ int main(int argc, char* argv[]) {
     cout << " - f: " << fraction << endl;
     cout << "------------------------------" << endl;
 
+    int totalConvergedInstances = 0;
     int totalSATInstances = 0;
     int totalSPSATIterations = 0;
     for (string path : paths) {
@@ -115,6 +117,7 @@ int main(int argc, char* argv[]) {
       FactorGraph* graph = new FactorGraph(file);
 
       SIDResult result = SID(graph, fraction);
+      if (result.converged) totalConvergedInstances += 1;
       if (result.SAT) {
         totalSATInstances++;
         totalSPSATIterations += result.totalSPIterations;
@@ -132,9 +135,10 @@ int main(int argc, char* argv[]) {
     }
 
     // Results
-    double satInstPercent = totalSATInstances * 100.0 / totalCnfInstances;
+    float satInstPercent = totalSATInstances * 100.0f / totalCnfInstances;
     cout << endl;
     cout << "Results:" << endl;
+    cout << " Converged Instances: " << totalConvergedInstances << endl;
     cout << " SAT instances: ";
     cout << totalSATInstances << " (" << satInstPercent << "%)" << endl;
     cout << " Total SP it. in SAT instances: " << totalSPSATIterations << endl;

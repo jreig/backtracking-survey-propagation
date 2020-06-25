@@ -23,7 +23,7 @@ class Variable {
 
  public:
   const unsigned id;
-  double evalValue;
+  float evalValue;
 
   // Read-only variables pointing to its private values
   // The linking is done in the constructor
@@ -143,7 +143,7 @@ class Edge {
   Clause* clause;
   Variable* variable;
 
-  double survey;
+  float survey;
 
   // Read-only variable pointing to its private value
   // The linking is done in the constructor
