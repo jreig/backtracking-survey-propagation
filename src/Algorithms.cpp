@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <cmath>
 #include <sstream>
+#include <stdexcept>
 #include <vector>
 
 // Project headers
@@ -24,6 +25,7 @@ SPResult SurveyPropagation(FactorGraph* graph) {
   bool allEdgesConverged = false;
   uint totalIt = 0;
   for (uint i = 0; i < SP_MAX_ITERATIONS && !allEdgesConverged; i++) {
+    // std::cout << "Iteration " << i << std::endl;
     // 2 - Order randomly the set of edges
     std::shuffle(edges.begin(), edges.end(), utils::RandomGen::randomGenerator);
 
@@ -32,7 +34,8 @@ SPResult SurveyPropagation(FactorGraph* graph) {
     for (Edge* edge : edges) {
       float previousSurveyValue = edge->survey;
       UpdateSurvey(edge);
-      // std::cout << edge << " (" << previousSurveyValue << ")" << std::endl;
+      // if (i == SP_MAX_ITERATIONS - 1)
+      //   std::cout << edge << " (" << previousSurveyValue << ")" << std::endl;
 
       // Check if edge converged
       bool hasConverged =
@@ -122,6 +125,16 @@ bool UnitPropagation(FactorGraph* graph) {
         edge->variable->AssignValue(edge->type);
         // std::cout << "UP assign: " << edge->variable->id << " - " <<
         // edge->type << std::endl;
+        for (Edge* edgeV : edge->variable->GetEnabledEdges()) {
+          if (edgeV->type == edge->variable->value) {
+            edgeV->clause->Dissable();
+          } else {
+            edgeV->Dissable();
+            if (edgeV->clause->enabled &&
+                edgeV->clause->GetEnabledEdges().size() == 0)
+              return false;
+          }
+        }
       }
       // If the variable is already assigned with a value distinct from the edge
       // type, return false (contradiction found)
@@ -131,29 +144,29 @@ bool UnitPropagation(FactorGraph* graph) {
     }
 
     // 2. For each Clause in the graph:
-    for (Clause* clause : graph->GetEnabledClauses()) {
-      for (Edge* edge : clause->GetEnabledEdges()) {
-        if (edge->variable->assigned) {
-          // 2.1 Disable the clause if is satisfied by the assignment
-          // (contains the assigned literal)
-          if (edge->type == edge->variable->value) {
-            clause->Dissable();
-            break;
-          }
+    // for (Clause* clause : graph->GetEnabledClauses()) {
+    //   for (Edge* edge : clause->GetEnabledEdges()) {
+    //     if (edge->variable->assigned) {
+    //       // 2.1 Disable the clause if is satisfied by the assignment
+    //       // (contains the assigned literal)
+    //       if (edge->type == edge->variable->value) {
+    //         clause->Dissable();
+    //         break;
+    //       }
 
-          // 2.2 Disable each Edge of the clause that contain an assigned
-          // Variable with the oposite literal type.
-          else {
-            edge->Dissable();
-          }
-        }
-      }
+    //       // 2.2 Disable each Edge of the clause that contain an assigned
+    //       // Variable with the oposite literal type.
+    //       else {
+    //         edge->Dissable();
+    //       }
+    //     }
+    //   }
 
-      // If the Clause is enabled and have 0 enabled Edges,
-      // return false (contradiction found).
-      if (clause->enabled && clause->GetEnabledEdges().size() == 0)
-        return false;
-    }
+    //   // If the Clause is enabled and have 0 enabled Edges,
+    //   // return false (contradiction found).
+    //   if (clause->enabled && clause->GetEnabledEdges().size() == 0)
+    //     return false;
+    // }
 
     // std::cout << "UP:" << graph << std::endl;
   }
@@ -163,7 +176,7 @@ bool UnitPropagation(FactorGraph* graph) {
 // Walksat
 // -----------------------------------------------------------------------------
 bool Walksat(FactorGraph* graph) {
-  // return true;
+  return true;
   // TODO Check that the parameters have correct values
 
   // 1. For try t = 0 to maxTries
@@ -260,23 +273,9 @@ SIDResult SID(FactorGraph* graph, float fraction) {
       std::chrono::steady_clock::now();
   while (true) {
     // 1. Run SP. If does not converge return false.
-    // std::vector<Edge*> edges = graph->GetEnabledEdges();
-    // std::ostringstream ss;
-    // std::string prevSP = "";
-    // for (Edge* edge : edges) {
-    //   ss << edge << std::endl;
-    //   prevSP = ss.str();
-    //   break;
-    // }
     SPResult spResult = SurveyPropagation(graph);
     totalSPIt += spResult.iterations;
     if (!spResult.converged) {
-      // std::cout << prevSP << std::endl;
-      // std::cout << "-----------------" << std::endl;
-      // for (Edge* edge : edges) {
-      //   std::cout << edge << std::endl;
-      //   break;
-      // }
       std::chrono::steady_clock::time_point end =
           std::chrono::steady_clock::now();
       std::cout << "SP don't converge" << std::endl;
@@ -325,7 +324,8 @@ SIDResult SID(FactorGraph* graph, float fraction) {
 
     for (int i = 0; i < assignFraction; i++) {
       Variable* var = unassignedVariables[i];
-      bool newValue = var->evalValue > 0;
+      bool newValue = var->evalValue > 0.0;
+      if (var->evalValue == 0.0) newValue = utils::RandomGen::getRandomBool();
       // std::cout << "Assigned: X" << var->id << " - "
       //           << (newValue ? "true" : "false") << std::endl;
       var->AssignValue(newValue);
@@ -337,6 +337,8 @@ SIDResult SID(FactorGraph* graph, float fraction) {
         }
       }
     }
+
+    // std::cout << graph << std::endl;
 
     // For each Clause in the graph:
     // for (Clause* clause : graph->GetEnabledClauses()) {

@@ -55,8 +55,7 @@ void Clause::Dissable() {
 
 bool Clause::IsSAT() const {
   for (Edge* edge : _allNeighbourEdges) {
-    if (edge->enabled && edge->variable->assigned &&
-        edge->type == edge->variable->value)
+    if (edge->variable->assigned && edge->type == edge->variable->value)
       return true;
   }
 

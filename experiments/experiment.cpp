@@ -50,7 +50,7 @@ int main(int argc, char* argv[]) {
     return -1;
   }
 
-  float fractionParams[1] = {0.02f};
+  float fractionParams[1] = {0.00f};
   int totalCnfInstances = CNF_INSTANCES;
   int totalVariables = atoi(argv[1]);
   float alpha = atof(argv[2]);
