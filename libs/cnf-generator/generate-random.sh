@@ -10,7 +10,7 @@ for n in "${variables[@]}";do
 	  m=$(echo "scale=0; $n*$ratio/1.0"|bc);
 
     for i in {1..50};do
-      seed=`expr "$i" + "$m"`
+      seed=`expr "$i" + "$m" + 1802215497`
       # echo $seed
       CNF=experiments/instances/random_${k}SAT_${n}N_${ratio}R_${i}.cnf
       ./libs/cnf-generator/random -n $n -m $m -s $seed -o $CNF

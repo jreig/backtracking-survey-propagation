@@ -50,7 +50,10 @@ int main(int argc, char* argv[]) {
     return -1;
   }
 
-  float fractionParams[1] = {0.00f};
+  float fractionParams[2] = {
+      0.0025f,
+      0.00125f,
+  };
   int totalCnfInstances = CNF_INSTANCES;
   int totalVariables = atoi(argv[1]);
   float alpha = atof(argv[2]);
@@ -123,7 +126,7 @@ int main(int argc, char* argv[]) {
         totalSPSATIterations += result.totalSPIterations;
         cout << "Solved: SAT" << endl;
       } else {
-        cout << "Solved: UNSAT" << endl;
+        cout << "Solved: INDETERMINATE" << endl;
       }
       cout << "Elapsed time = "
            << chrono::duration_cast<chrono::seconds>(result.end - result.begin)

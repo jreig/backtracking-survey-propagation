@@ -120,6 +120,10 @@ bool UnitPropagation(FactorGraph* graph) {
     // Assign the Variable of the unit clause to true if Edge is POSITIVE
     // and to false if NEGATIVE.
     for (Clause* unitClause : unitClauses) {
+      // Previous unit clauses can disable or remove edges of unit clauses
+      if (!unitClause->enabled) continue;
+      if (unitClause->GetEnabledEdges().size() == 0) return false;
+
       Edge* edge = unitClause->GetEnabledEdges()[0];
       if (!edge->variable->assigned) {
         edge->variable->AssignValue(edge->type);
@@ -176,7 +180,7 @@ bool UnitPropagation(FactorGraph* graph) {
 // Walksat
 // -----------------------------------------------------------------------------
 bool Walksat(FactorGraph* graph) {
-  return true;
+  // return true;
   // TODO Check that the parameters have correct values
 
   // 1. For try t = 0 to maxTries
@@ -370,14 +374,14 @@ SIDResult SID(FactorGraph* graph, float fraction) {
     // }
 
     // 4. Run UNIT PROPAGTION
-    // bool UPResult = UnitPropagation(graph);
-    // // If a contradiction in found, return false
-    // if (!UPResult) {
-    //   std::chrono::steady_clock::time_point end =
-    //       std::chrono::steady_clock::now();
-    //   std::cout << "UP found a contradiction" << std::endl;
-    //   return {false, totalSPIt, begin, end};
-    // }
+    bool UPResult = UnitPropagation(graph);
+    // If a contradiction in found, return false
+    if (!UPResult) {
+      std::chrono::steady_clock::time_point end =
+          std::chrono::steady_clock::now();
+      std::cout << "UP found a contradiction" << std::endl;
+      return {true, false, totalSPIt, begin, end};
+    }
     // If SAT, return true.
     if (graph->IsSAT()) {
       std::chrono::steady_clock::time_point end =
