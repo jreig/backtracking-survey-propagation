@@ -50,9 +50,8 @@ int main(int argc, char* argv[]) {
     return -1;
   }
 
-  float fractionParams[2] = {
-      0.0025f,
-      0.00125f,
+  float fractionParams[6] = {
+      0.04f, 0.02f, 0.01f, 0.005f, 0.0025f, 0.00125f,
   };
   int totalCnfInstances = CNF_INSTANCES;
   int totalVariables = atoi(argv[1]);

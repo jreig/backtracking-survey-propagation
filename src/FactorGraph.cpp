@@ -189,7 +189,7 @@ std::vector<Edge*> FactorGraph::GetEnabledEdges() {
 
 bool FactorGraph::IsSAT() const {
   for (Clause* clause : _clauses) {
-    if (clause->enabled && !clause->IsSAT()) return false;
+    if (!clause->IsSAT()) return false;
   }
 
   return true;

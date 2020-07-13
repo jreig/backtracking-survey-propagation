@@ -146,33 +146,6 @@ bool UnitPropagation(FactorGraph* graph) {
         if (edge->type != edge->variable->value) return false;
       }
     }
-
-    // 2. For each Clause in the graph:
-    // for (Clause* clause : graph->GetEnabledClauses()) {
-    //   for (Edge* edge : clause->GetEnabledEdges()) {
-    //     if (edge->variable->assigned) {
-    //       // 2.1 Disable the clause if is satisfied by the assignment
-    //       // (contains the assigned literal)
-    //       if (edge->type == edge->variable->value) {
-    //         clause->Dissable();
-    //         break;
-    //       }
-
-    //       // 2.2 Disable each Edge of the clause that contain an assigned
-    //       // Variable with the oposite literal type.
-    //       else {
-    //         edge->Dissable();
-    //       }
-    //     }
-    //   }
-
-    //   // If the Clause is enabled and have 0 enabled Edges,
-    //   // return false (contradiction found).
-    //   if (clause->enabled && clause->GetEnabledEdges().size() == 0)
-    //     return false;
-    // }
-
-    // std::cout << "UP:" << graph << std::endl;
   }
 }
 
@@ -181,7 +154,6 @@ bool UnitPropagation(FactorGraph* graph) {
 // -----------------------------------------------------------------------------
 bool Walksat(FactorGraph* graph) {
   // return true;
-  // TODO Check that the parameters have correct values
 
   // 1. For try t = 0 to maxTries
   for (uint t = 0; t < WS_MAX_TRIES; t++) {
@@ -333,6 +305,8 @@ SIDResult SID(FactorGraph* graph, float fraction) {
       // std::cout << "Assigned: X" << var->id << " - "
       //           << (newValue ? "true" : "false") << std::endl;
       var->AssignValue(newValue);
+
+      // Clean graph after assigning variable
       for (Edge* edge : var->GetEnabledEdges()) {
         if (edge->type == var->value) {
           edge->clause->Dissable();
@@ -341,37 +315,6 @@ SIDResult SID(FactorGraph* graph, float fraction) {
         }
       }
     }
-
-    // std::cout << graph << std::endl;
-
-    // For each Clause in the graph:
-    // for (Clause* clause : graph->GetEnabledClauses()) {
-    //   for (Edge* edge : clause->GetEnabledEdges()) {
-    //     if (edge->variable->assigned) {
-    //       // 2.1 Disable the clause if is satisfied by the assignment
-    //       // (contains the assigned literal)
-    //       if (edge->type == edge->variable->value) {
-    //         clause->Dissable();
-    //         break;
-    //       }
-
-    //       // 2.2 Disable each Edge of the clause that contain an assigned
-    //       // Variable with the oposite literal type.
-    //       else {
-    //         edge->Dissable();
-    //       }
-    //     }
-    //   }
-
-    //   // If the Clause is enabled and have 0 enabled Edges,
-    //   // return false (contradiction found).
-    //   if (clause->enabled && clause->GetEnabledEdges().size() == 0) {
-    //     std::chrono::steady_clock::time_point end =
-    //         std::chrono::steady_clock::now();
-    //     std::cout << "SID Contradiction found" << std::endl;
-    //     return {false, totalSPIt, begin, end};
-    //   }
-    // }
 
     // 4. Run UNIT PROPAGTION
     bool UPResult = UnitPropagation(graph);
@@ -383,6 +326,9 @@ SIDResult SID(FactorGraph* graph, float fraction) {
       return {true, false, totalSPIt, begin, end};
     }
     // If SAT, return true.
+
+    // std::cout << graph << std::endl;
+
     if (graph->IsSAT()) {
       std::chrono::steady_clock::time_point end =
           std::chrono::steady_clock::now();

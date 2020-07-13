@@ -12,7 +12,7 @@
 
 // WALKSAT parameters
 #define WS_MAX_TRIES 100
-#define WS_MAX_FLIPS 100 * 1000
+#define WS_MAX_FLIPS 100 * 100
 #define WS_NOISE 0.5f
 
 // CNF instances
