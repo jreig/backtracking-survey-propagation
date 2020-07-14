@@ -17,9 +17,11 @@ class RandomGen {
   static std::uniform_real_distribution<> randomReal01UD;
 
   inline static void setSeed(int seed) { randomGenerator.seed(seed); }
-  inline static bool getRandomBool() { return randomBoolUD(randomGenerator); }
+  inline static bool getRandomBool() {
+    return RandomGen::randomBoolUD(RandomGen::randomGenerator);
+  }
   inline static float getRandomReal01() {
-    return randomReal01UD(randomGenerator);
+    return RandomGen::randomReal01UD(RandomGen::randomGenerator);
   }
 };
 

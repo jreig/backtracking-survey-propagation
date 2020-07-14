@@ -9,7 +9,7 @@ namespace sat::utils {
 // =============================================================================
 std::random_device RandomGen::rd;
 unsigned long RandomGen::initialSeed = RandomGen::rd();
-std::mt19937 RandomGen::randomGenerator(initialSeed);
+std::mt19937 RandomGen::randomGenerator(RandomGen::initialSeed);
 std::uniform_int_distribution<> RandomGen::randomBoolUD(0, 1);
 std::uniform_real_distribution<> RandomGen::randomReal01UD(0, 1);
 
