@@ -10,51 +10,50 @@ namespace sat {
 // =============================================================================
 // Variable class
 // =============================================================================
-Variable::Variable(const unsigned id)
-    : id(id), evalValue(0.0f), assigned(_assigned), value(_value) {}
+Variable::Variable(const unsigned id) : id(id), assigned(false) {}
 
 std::vector<Edge*> Variable::GetEnabledEdges() {
   std::vector<Edge*> enabledNeigbours;
-  for (Edge* edge : _allNeighbourEdges) {
+  for (Edge* edge : allNeighbourEdges) {
     if (edge->enabled) enabledNeigbours.push_back(edge);
   }
   return enabledNeigbours;
 }
 
 void Variable::AssignValue(const bool newValue) {
-  _value = newValue;
-  _assigned = true;
+  value = newValue;
+  assigned = true;
 }
 
-// std::ostream& operator<<(std::ostream& os, const Variable* var) {
-//   os << "X" << var->id << ": "
-//      << (var->assigned ? (var->value ? "true" : "false") : "NOT_ASSIGNED");
-//   return os;
-// }
+std::ostream& operator<<(std::ostream& os, const Variable* var) {
+  os << "X" << var->id << ": "
+     << (var->assigned ? (var->value ? "true" : "false") : "NOT_ASSIGNED");
+  return os;
+}
 
 // =============================================================================
 // Clause class
 // =============================================================================
-Clause::Clause(const unsigned id) : id(id), enabled(_enabled) {}
+Clause::Clause(const unsigned id) : id(id), enabled(true) {}
 
-std::vector<Edge*> Clause::GetEnabledEdges() {
+std::vector<Edge*> Clause::GetEnabledEdges() const {
   std::vector<Edge*> enabledNeigbours;
-  for (Edge* edge : _allNeighbourEdges) {
+  for (Edge* edge : allNeighbourEdges) {
     if (edge->enabled) enabledNeigbours.push_back(edge);
   }
   return enabledNeigbours;
 }
 
 void Clause::Dissable() {
-  _enabled = false;
+  enabled = false;
 
-  for (Edge* edge : _allNeighbourEdges) {
+  for (Edge* edge : allNeighbourEdges) {
     if (edge->enabled) edge->Dissable();
   }
 }
 
 bool Clause::IsSAT() const {
-  for (Edge* edge : _allNeighbourEdges) {
+  for (Edge* edge : allNeighbourEdges) {
     if (edge->variable->assigned && edge->type == edge->variable->value)
       return true;
   }
@@ -62,24 +61,20 @@ bool Clause::IsSAT() const {
   return false;
 }
 
-// std::ostream& operator<<(std::ostream& os, const Clause* c) {
-//   os << "C" << c->id << ": ";
-//   os << c->GetEnabledEdges().size() << " variables - ";
-//   os << (c->enabled ? "ENABLED" : "DISABLED");
-//   return os;
-// }
+std::ostream& operator<<(std::ostream& os, const Clause* c) {
+  os << "C" << c->id << ": ";
+  os << c->GetEnabledEdges().size() << " literals - ";
+  os << (c->enabled ? "ENABLED" : "DISABLED");
+  return os;
+}
 
 // =============================================================================
 // Edge class
 // =============================================================================
 Edge::Edge(bool type, Clause* clause, Variable* variable)
-    : type(type),
-      clause(clause),
-      variable(variable),
-      survey(0.0f),
-      enabled(_enabled) {}
+    : type(type), enabled(true), clause(clause), variable(variable) {}
 
-void Edge::Dissable() { _enabled = false; }
+void Edge::Dissable() { enabled = false; }
 
 std::ostream& operator<<(std::ostream& os, const Edge* e) {
   os << "C" << e->clause->id << " <---> ";
@@ -114,13 +109,13 @@ FactorGraph::FactorGraph(std::ifstream& file) {
       // Create variables
       for (unsigned i = 0; i < totalVariables; i++) {
         Variable* variable = new Variable(i + 1);
-        _variables.push_back(variable);
+        variables.push_back(variable);
       }
 
       // Create clauses
       for (unsigned i = 0; i < totalClauses; i++) {
         Clause* clause = new Clause(i);
-        _clauses.push_back(clause);
+        clauses.push_back(clause);
       }
 
       configured = true;
@@ -138,15 +133,15 @@ FactorGraph::FactorGraph(std::ifstream& file) {
 
             // Create an edge
             bool edgeType = variableValue > 0;
-            Clause* clause = _clauses[currentClauseIndex];
-            Variable* variable = _variables[variableIndex];
+            Clause* clause = clauses[currentClauseIndex];
+            Variable* variable = variables[variableIndex];
 
             Edge* edge = new Edge(edgeType, clause, variable);
-            _edges.push_back(edge);
+            edges.push_back(edge);
 
             // Connect clauses and variables with the edge
-            clause->_allNeighbourEdges.push_back(edge);
-            variable->_allNeighbourEdges.push_back(edge);
+            clause->allNeighbourEdges.push_back(edge);
+            variable->allNeighbourEdges.push_back(edge);
           }
         }
 
@@ -158,14 +153,14 @@ FactorGraph::FactorGraph(std::ifstream& file) {
 }
 
 FactorGraph::~FactorGraph() {
-  for (Clause* clause : _clauses) delete clause;
-  for (Variable* variable : _variables) delete variable;
-  for (Edge* edge : _edges) delete edge;
+  for (Clause* clause : clauses) delete clause;
+  for (Variable* variable : variables) delete variable;
+  for (Edge* edge : edges) delete edge;
 }
 
 std::vector<Variable*> FactorGraph::GetUnassignedVariables() {
   std::vector<Variable*> unassignedVariables;
-  for (Variable* variable : _variables) {
+  for (Variable* variable : variables) {
     if (!variable->assigned) unassignedVariables.push_back(variable);
   }
   return unassignedVariables;
@@ -173,7 +168,7 @@ std::vector<Variable*> FactorGraph::GetUnassignedVariables() {
 
 std::vector<Clause*> FactorGraph::GetEnabledClauses() {
   std::vector<Clause*> enabledClauses;
-  for (Clause* clause : _clauses) {
+  for (Clause* clause : clauses) {
     if (clause->enabled) enabledClauses.push_back(clause);
   }
   return enabledClauses;
@@ -181,14 +176,14 @@ std::vector<Clause*> FactorGraph::GetEnabledClauses() {
 
 std::vector<Edge*> FactorGraph::GetEnabledEdges() {
   std::vector<Edge*> enabledEdges;
-  for (Edge* edge : _edges) {
+  for (Edge* edge : edges) {
     if (edge->enabled) enabledEdges.push_back(edge);
   }
   return enabledEdges;
 }
 
 bool FactorGraph::IsSAT() const {
-  for (Clause* clause : _clauses) {
+  for (Clause* clause : clauses) {
     if (!clause->IsSAT()) return false;
   }
 
@@ -196,11 +191,11 @@ bool FactorGraph::IsSAT() const {
 }
 
 std::ostream& operator<<(std::ostream& os, FactorGraph* fg) {
-  unsigned totalVariables = fg->_variables.size();
+  unsigned totalVariables = fg->variables.size();
   unsigned assignedVariables =
       totalVariables - fg->GetUnassignedVariables().size();
 
-  unsigned totalClauses = fg->_clauses.size();
+  unsigned totalClauses = fg->clauses.size();
   unsigned satClauses = totalClauses - fg->GetEnabledClauses().size();
 
   os << "Assigned Variables: ";

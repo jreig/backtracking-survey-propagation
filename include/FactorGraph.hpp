@@ -19,22 +19,25 @@ class FactorGraph;
 // where it appears.
 // =============================================================================
 class Variable {
-  friend class FactorGraph;
-
  public:
   const unsigned id;
-  float evalValue;
+  bool assigned;
+  bool value;
 
-  // Read-only variables pointing to its private values
-  // The linking is done in the constructor
-  const bool& assigned;
-  const bool& value;
+  std::vector<Edge*> allNeighbourEdges;
 
- private:
-  bool _assigned = false;
-  bool _value = false;
+  // Variables to store sub products to optimize the calculation of
+  // equations 26 and 31
+  double p;   // Pa€V+(i) (1 - na->i)
+  double m;   // Pa€V-(i) (1 - na->i)
+  int pzero;  // Number of surveys == 1 in p
+  int mzero;  // Number of surveys == 1 in m
 
-  std::vector<Edge*> _allNeighbourEdges;
+  double Hp;
+  double Hz;
+  double Hm;
+
+  double evalValue;
 
  public:
   // ---------------------------------------------------------------------------
@@ -56,7 +59,7 @@ class Variable {
   // ---------------------------------------------------------------------------
   // AssignValue
   //
-  // Sets _assigned to true and _value to the new value.
+  // Sets assigned to true and value to the new value.
   // ---------------------------------------------------------------------------
   void AssignValue(const bool newValue);
 
@@ -65,7 +68,7 @@ class Variable {
   //
   // X{id}: [{value}|NOT_ASSIGNED]
   // ---------------------------------------------------------------------------
-  // friend std::ostream& operator<<(std::ostream& os, const Variable* var);
+  friend std::ostream& operator<<(std::ostream& os, const Variable* var);
 };
 
 // =============================================================================
@@ -76,19 +79,11 @@ class Variable {
 // that appear in it.
 // =============================================================================
 class Clause {
-  friend class FactorGraph;
-
  public:
   const unsigned id;
+  bool enabled;
 
-  // Read-only variable pointing to its private value
-  // The linking is done in the constructor
-  const bool& enabled;
-
- private:
-  bool _enabled = true;
-
-  std::vector<Edge*> _allNeighbourEdges;
+  std::vector<Edge*> allNeighbourEdges;
 
  public:
   // ---------------------------------------------------------------------------
@@ -105,7 +100,7 @@ class Clause {
   //
   // Get only the enabled edges that connect to the node
   // ---------------------------------------------------------------------------
-  std::vector<Edge*> GetEnabledEdges();
+  std::vector<Edge*> GetEnabledEdges() const;
 
   // ---------------------------------------------------------------------------
   // Dissable
@@ -124,9 +119,9 @@ class Clause {
   // ---------------------------------------------------------------------------
   // operator<<
   //
-  // C{id}: N variables - [ENABLED|DISABLED]
+  // C{id}: N literals - [ENABLED|DISABLED]
   // ---------------------------------------------------------------------------
-  // friend std::ostream& operator<<(std::ostream& os, const Clause* c);
+  friend std::ostream& operator<<(std::ostream& os, const Clause* c);
 };
 
 // =============================================================================
@@ -140,17 +135,12 @@ class Clause {
 class Edge {
  public:
   const bool type;
+  bool enabled;
+
   Clause* clause;
   Variable* variable;
 
-  float survey;
-
-  // Read-only variable pointing to its private value
-  // The linking is done in the constructor
-  const bool& enabled;
-
- private:
-  bool _enabled = true;
+  double survey;
 
  public:
   // ---------------------------------------------------------------------------
@@ -170,13 +160,6 @@ class Edge {
   void Dissable();
 
   // ---------------------------------------------------------------------------
-  // Enable
-  //
-  // Enable the edge
-  // ---------------------------------------------------------------------------
-  inline void Enable() { _enabled = true; }
-
-  // ---------------------------------------------------------------------------
   // operator<<
   //
   // C{clau.id} <---> [¬]X{var.id} - [ENABLED|DISABLED] ({survey})
@@ -191,10 +174,10 @@ class Edge {
 // valid DIMACS CNF file.
 // =============================================================================
 class FactorGraph {
- private:
-  std::vector<Variable*> _variables;
-  std::vector<Clause*> _clauses;
-  std::vector<Edge*> _edges;
+ public:
+  std::vector<Variable*> variables;
+  std::vector<Clause*> clauses;
+  std::vector<Edge*> edges;
 
  public:
   // ---------------------------------------------------------------------------
@@ -208,10 +191,6 @@ class FactorGraph {
   // ---------------------------------------------------------------------------
   // Getters
   // ---------------------------------------------------------------------------
-  inline std::vector<Variable*> GetAllVariables() { return _variables; }
-  inline std::vector<Clause*> GetAllClauses() { return _clauses; }
-  inline std::vector<Edge*> GetAllEdges() { return _edges; }
-
   std::vector<Variable*> GetUnassignedVariables();
   std::vector<Clause*> GetEnabledClauses();
   std::vector<Edge*> GetEnabledEdges();
