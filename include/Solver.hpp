@@ -7,13 +7,18 @@ using namespace std;
 
 namespace sat {
 
+// This constant is to ensure correct comparsion of doubles when checking
+// if a number is 0. All numbers below 1.0e-16 are considered 0.
+#define ZERO_EPSILON (1.0e-16)
+
 enum AlgorithmResult {
   CONVERGE,
   UNCONVERGE,
   DONE,
   CONTRADICTION,
   SAT,
-  INDETERMINATE
+  INDETERMINATE,
+  WALKSAT  // TODO remove when walksat is implemented
 };
 
 // =============================================================================
@@ -33,36 +38,35 @@ class Solver {
   // Factor Graph
   FactorGraph* fg;
   int N;
-  float alpha;
+  double alpha;
 
   // Algorithm parameters
-  float sidFraction;
+  double sidFraction;
   double paramagneticState = 0.01;
 
   int spMaxIt = 1000;
-  double spEpsilon = 0.001f;
+  double spEpsilon = 0.001;
 
   int wsMaxTries = 100;
   int wsMaxFlips = 100;
-  int wsNoise = 0.5f;
+  double wsNoise = 0.5;
 
   // Metrics
-  int lastSPIterations = 0;
-
- private:
-  double maxConvergeDiff = 0.0;
+  // TODO
 
  public:
   // inline void setSeed(int seed) { _randomGenerator.seed(seed); }
   inline bool getRandomBool() { return randomBoolUD(randomGenerator); }
   inline double getRandomReal01() { return randomReal01UD(randomGenerator); }
 
-  explicit Solver(int N, float a, int seed);
+  explicit Solver(int N, double a, int seed);
 
-  AlgorithmResult SID(FactorGraph* graph, float fraction);
+  AlgorithmResult SID(FactorGraph* graph, double fraction);
 
  private:
-  AlgorithmResult SP();
+  AlgorithmResult surveyPropagation();
+  double updateSurveys(Clause* clause);
+  void computeSubProducts();
   void evaluateVar(Variable* var);
   bool assignVariable(Variable* var, bool value);
   bool cleanGraph(Variable* var);
