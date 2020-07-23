@@ -18,7 +18,7 @@ SRC	= $(wildcard $(SRC_DIR)/*.cpp)
 
 all: build 
 
-build: build-dir build-experiments build-test
+build: build-dir build-experiments
 
 build-dir:
 	@mkdir -p $(BUILD_DIR)

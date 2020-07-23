@@ -1,15 +1,15 @@
 #include <string.h>
 
+#include <chrono>
 #include <iostream>
 #include <sstream>
 #include <string>
 #include <vector>
 
 // Project includes
-#include <Algorithms.hpp>
 #include <Configuration.hpp>
 #include <FactorGraph.hpp>
-#include <Utils.hpp>
+#include <Solver.hpp>
 
 using namespace std;
 using namespace sat;
@@ -21,7 +21,7 @@ using namespace sat;
 // of the file paths.
 // CNFs are stored in DIMACS files in the experiments/instances/ folder.
 // ---------------------------------------------------------------------------
-vector<string> GetRandomCNFFiles(int totalInstances, int N, float alpha,
+vector<string> GetRandomCNFFiles(int totalInstances, int N, double alpha,
                                  const string& generator) {
   vector<string> paths;
 
@@ -32,6 +32,8 @@ vector<string> GetRandomCNFFiles(int totalInstances, int N, float alpha,
        << ".cnf";
     string path = ss.str();
     paths.push_back(path);
+
+    // TODO: Test only first cnf
     // break;
   }
 
@@ -50,12 +52,13 @@ int main(int argc, char* argv[]) {
     return -1;
   }
 
-  float fractionParams[6] = {
-      0.04f, 0.02f, 0.01f, 0.005f, 0.0025f, 0.00125f,
-  };
+  // double fractionParams[6] = {
+  //     0.04, 0.02, 0.01, 0.005, 0.0025, 0.00125,
+  // };
+  double fractionParams[1] = {0.01};
   int totalCnfInstances = CNF_INSTANCES;
   int totalVariables = atoi(argv[1]);
-  float alpha = atof(argv[2]);
+  double alpha = atof(argv[2]);
   string generator = "random";
   if (argc == 4) {
     if (strcmp(argv[3], "random") == 0 || strcmp(argv[3], "community") == 0) {
@@ -80,10 +83,10 @@ int main(int argc, char* argv[]) {
 
   cout << "Setting up experiment environment..." << endl;
 
-  if (seed != 0)
-    utils::RandomGen::setSeed(seed);
-  else
-    cout << "Initial seed: " << utils::RandomGen::initialSeed << endl;
+  Solver solver(totalVariables, alpha, seed);
+
+  if (seed == 0) cout << "Initial seed: " << solver.initialSeed << endl;
+
   // Get random CNF instances
   vector<string> paths =
       GetRandomCNFFiles(totalCnfInstances, totalVariables, alpha, generator);
@@ -95,7 +98,7 @@ int main(int argc, char* argv[]) {
   // ---------------------------------------------------------------------------
   int experimentId = 1;
 
-  for (float fraction : fractionParams) {
+  for (double fraction : fractionParams) {
     cout << endl << endl;
     cout << "------------------------------" << endl;
     cout << "Experiment " << experimentId << ":" << endl;
@@ -104,46 +107,66 @@ int main(int argc, char* argv[]) {
     cout << " - f: " << fraction << endl;
     cout << "------------------------------" << endl;
 
+    bool verbose = true;
+
     int totalConvergedInstances = 0;
     int totalSATInstances = 0;
     int totalSPSATIterations = 0;
+    chrono::steady_clock::time_point begin = chrono::steady_clock::now();
     for (string path : paths) {
       ifstream file(path);
       if (!file.is_open()) {
         cerr << "ERROR: Can't open file " << path << endl;
         break;
       } else {
-        cout << "Solving file " << path << endl;
+        if (verbose) cout << "Solving file " << path << endl;
       }
 
       FactorGraph* graph = new FactorGraph(file);
+      chrono::steady_clock::time_point beginSID = chrono::steady_clock::now();
+      AlgorithmResult result = solver.SID(graph, fraction);
+      chrono::steady_clock::time_point endSID = chrono::steady_clock::now();
 
-      SIDResult result = SID(graph, fraction);
-      if (result.converged) totalConvergedInstances += 1;
-      if (result.SAT) {
-        totalSATInstances++;
-        totalSPSATIterations += result.totalSPIterations;
-        cout << "Solved: SAT" << endl;
-      } else {
-        cout << "Solved: INDETERMINATE" << endl;
+      // Experiment metrics
+      if (result != UNCONVERGE) totalConvergedInstances += 1;
+      if (result == SAT || result == WALKSAT) totalSATInstances++;
+      // totalSPSATIterations += result.totalSPIterations;
+
+      // Print result
+      if (verbose) {
+        if (result == SAT)
+          cout << "Solved: SAT" << endl;
+        else if (result == UNCONVERGE)
+          cout << "Solved: UNCONVERGE" << endl;
+        else if (result == CONTRADICTION)
+          cout << "Solved: CONTRADICTION" << endl;
+        else if (result == WALKSAT)
+          cout << "Solved: WALKSAT" << endl;
+
+        // Print elapsed time
+        cout
+            << "Elapsed time = "
+            << chrono::duration_cast<chrono::seconds>(endSID - beginSID).count()
+            << "s" << endl;
+        cout << endl;
       }
-      cout << "Elapsed time = "
-           << chrono::duration_cast<chrono::seconds>(result.end - result.begin)
-                  .count()
-           << "s" << endl;
-      cout << endl;
 
       delete graph;
     }
+    chrono::steady_clock::time_point end = chrono::steady_clock::now();
 
     // Results
-    float satInstPercent = totalSATInstances * 100.0f / totalCnfInstances;
+    double satInstPercent = totalSATInstances * 100.0 / totalCnfInstances;
     cout << endl;
     cout << "Results:" << endl;
     cout << " Converged Instances: " << totalConvergedInstances << endl;
     cout << " SAT instances: ";
     cout << totalSATInstances << " (" << satInstPercent << "%)" << endl;
     cout << " Total SP it. in SAT instances: " << totalSPSATIterations << endl;
+    cout << " Total time:"
+         << chrono::duration_cast<chrono::seconds>(end - begin).count() << "s"
+         << endl;
+    cout << endl;
 
     // increase experiment id
     experimentId++;

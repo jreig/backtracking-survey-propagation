@@ -180,6 +180,8 @@ class FactorGraph {
   std::vector<Edge*> edges;
 
  public:
+  const std::vector<std::string> SplitString(const std::string& s);
+
   // ---------------------------------------------------------------------------
   // FactorGraph constructor
   //

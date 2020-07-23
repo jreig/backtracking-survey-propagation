@@ -1,9 +1,10 @@
 #include <iomanip>
+#include <iostream>
+#include <sstream>
 #include <string>
 
 // Project headers
 #include <FactorGraph.hpp>
-#include <Utils.hpp>
 
 namespace sat {
 
@@ -88,6 +89,19 @@ std::ostream& operator<<(std::ostream& os, const Edge* e) {
 // =============================================================================
 // FactorGraph class
 // =============================================================================
+const std::vector<std::string> FactorGraph::SplitString(const std::string& s) {
+  const char delim = ' ';
+  std::stringstream stream(s);
+  std::vector<std::string> tokens;
+
+  std::string token;
+  while (std::getline(stream, token, delim)) {
+    tokens.push_back(token);
+  }
+
+  return tokens;
+}
+
 FactorGraph::FactorGraph(std::ifstream& file) {
   // Process each line of the dimacs file
   bool configured = false;
@@ -95,7 +109,7 @@ FactorGraph::FactorGraph(std::ifstream& file) {
   std::string line;
   while (getline(file, line)) {
     // Split the lines into tokens
-    const std::vector<std::string> tokens = utils::SplitString(line);
+    const std::vector<std::string> tokens = SplitString(line);
 
     // If first token is a 'c' ignore the line because is a comment
     if (tokens[0] == "c") continue;

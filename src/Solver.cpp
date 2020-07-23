@@ -14,7 +14,7 @@ Solver::Solver(int N, double a, int seed)
       alpha(a),
       wsMaxFlips(100 * N) {
   // Random number generator initialization
-  if (seed = 0) initialSeed = rd();
+  if (seed == 0) initialSeed = rd();
   randomGenerator.seed(initialSeed);
 }
 
@@ -39,6 +39,7 @@ AlgorithmResult Solver::SID(FactorGraph* graph, double fraction) {
     // If trivial state is reach, walksat is called and the result returned
     // ----------------------------
     AlgorithmResult spResult = surveyPropagation();
+    if (spResult == WALKSAT) cout << fg << endl;
     if (spResult != CONVERGE) return spResult;
 
     // --------------------------------
@@ -52,16 +53,18 @@ AlgorithmResult Solver::SID(FactorGraph* graph, double fraction) {
       if (!var->assigned) {
         evaluateVar(var);
         sumMaxBias += var->Hp > var->Hm ? var->Hp : var->Hm;
+        unassignedVariables.push_back(var);
       }
     }
 
     // Check paramagnetic state
     // TODO: Entender que significa esto, en el codigo original, este es
     // el unico sitio donde se llama a walksat
-    if (sumMaxBias / unassignedVariables.size() < paramagneticState) {
-      // TODO: Return walksat
-      return WALKSAT;
-    }
+    // if (sumMaxBias / unassignedVariables.size() < paramagneticState) {
+    //   // TODO: Return walksat
+    //   cout << fg << endl;
+    //   return WALKSAT;
+    // }
 
     // Assign minimum 1 variable
     int assignFraction = (int)(unassignedVariables.size() * fraction);
@@ -78,7 +81,7 @@ AlgorithmResult Solver::SID(FactorGraph* graph, double fraction) {
       // Variables in the list can be already assigned due to UP being executed
       // in previous iterations
       if (unassignedVariables[i]->assigned) {
-        i--;  // Don't count this variable as a new assignation
+        assignFraction++;  // Don't count this variable as a new assignation
         continue;
       }
 
@@ -98,9 +101,6 @@ AlgorithmResult Solver::SID(FactorGraph* graph, double fraction) {
       }
     }
 
-    // Print graph status
-    cout << fg << endl;
-
     // ----------------------------
     // If SAT finish algorithm
     // ----------------------------
@@ -111,8 +111,6 @@ AlgorithmResult Solver::SID(FactorGraph* graph, double fraction) {
 }
 
 AlgorithmResult Solver::surveyPropagation() {
-  double maxConvergeDiff = 0.0;
-
   // Calculate subproducts of all variables
   computeSubProducts();
 
@@ -122,6 +120,7 @@ AlgorithmResult Solver::surveyPropagation() {
     shuffle(enabledClauses.begin(), enabledClauses.end(), randomGenerator);
 
     // Calculate surveys
+    double maxConvergeDiff = 0.0;
     for (Clause* clause : enabledClauses) {
       double maxConvDiffInClause = updateSurveys(clause);
 
@@ -136,6 +135,7 @@ AlgorithmResult Solver::surveyPropagation() {
       // which is a trivial state and walksat must be called
       if (maxConvergeDiff < ZERO_EPSILON) {
         // TODO: return walksat
+        cout << "SP returned WALKSAT" << endl;
         return WALKSAT;
       }
 
@@ -185,7 +185,7 @@ void Solver::computeSubProducts() {
   }
 }
 
-double updateSurveys(Clause* clause) {
+double Solver::updateSurveys(Clause* clause) {
   double maxConvDiffInClause = 0.0;
   int zeros = 0;
   double allSubSurveys = 1.0;
