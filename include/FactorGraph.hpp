@@ -25,6 +25,8 @@ class Variable {
   bool value;
 
   std::vector<Edge*> allNeighbourEdges;
+  std::vector<Edge*> positiveNeighbourEdges;
+  std::vector<Edge*> negativeNeighbourEdges;
 
   // Variables to store sub products to optimize the calculation of
   // equations 26 and 31
@@ -82,6 +84,7 @@ class Clause {
  public:
   const unsigned id;
   bool enabled;
+  int trueLiterals = 0;
 
   std::vector<Edge*> allNeighbourEdges;
 

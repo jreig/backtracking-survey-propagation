@@ -49,7 +49,7 @@ class Solver {
 
   int wsMaxTries = 100;
   int wsMaxFlips = 100;
-  double wsNoise = 0.5;
+  double wsNoise = 0.567;
 
   // Metrics
   // TODO
@@ -64,6 +64,7 @@ class Solver {
   AlgorithmResult SID(FactorGraph* graph, double fraction);
 
  private:
+  AlgorithmResult walksat();
   AlgorithmResult surveyPropagation();
   double updateSurveys(Clause* clause);
   void computeSubProducts();

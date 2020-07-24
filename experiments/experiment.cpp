@@ -52,10 +52,10 @@ int main(int argc, char* argv[]) {
     return -1;
   }
 
-  // double fractionParams[6] = {
-  //     0.04, 0.02, 0.01, 0.005, 0.0025, 0.00125,
-  // };
-  double fractionParams[1] = {0.01};
+  double fractionParams[6] = {
+      0.04, 0.02, 0.01, 0.005, 0.0025, 0.00125,
+  };
+  // double fractionParams[1] = {0.01};
   int totalCnfInstances = CNF_INSTANCES;
   int totalVariables = atoi(argv[1]);
   double alpha = atof(argv[2]);
@@ -129,7 +129,7 @@ int main(int argc, char* argv[]) {
 
       // Experiment metrics
       if (result != UNCONVERGE) totalConvergedInstances += 1;
-      if (result == SAT || result == WALKSAT) totalSATInstances++;
+      if (result == SAT) totalSATInstances++;
       // totalSPSATIterations += result.totalSPIterations;
 
       // Print result
@@ -140,8 +140,8 @@ int main(int argc, char* argv[]) {
           cout << "Solved: UNCONVERGE" << endl;
         else if (result == CONTRADICTION)
           cout << "Solved: CONTRADICTION" << endl;
-        else if (result == WALKSAT)
-          cout << "Solved: WALKSAT" << endl;
+        else if (result == INDETERMINATE)
+          cout << "Solved: INDETERMINATE" << endl;
 
         // Print elapsed time
         cout
