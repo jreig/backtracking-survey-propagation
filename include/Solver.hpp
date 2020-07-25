@@ -47,9 +47,9 @@ class Solver {
   int spMaxIt = 1000;
   double spEpsilon = 0.001;
 
-  int wsMaxTries = 100;
+  int wsMaxTries = 10;
   int wsMaxFlips = 100;
-  double wsNoise = 0.567;
+  double wsNoise = 0.57;
 
   // Metrics
   // TODO

@@ -395,30 +395,52 @@ void Solver::evaluateVar(Variable* var) {
 }
 
 AlgorithmResult Solver::walksat() {
+  // get subgraph
+  vector<Variable*> variables = fg->GetUnassignedVariables();
+  vector<Clause*> clauses = fg->GetEnabledClauses();
+
+  // for (Variable* var : variables) {
+  //   cout << var << endl;
+  // }
+
+  // for (Clause* c : clauses) {
+  //   cout << c << endl;
+  // }
+
+  // for (Edge* e : fg->GetEnabledEdges()) cout << e << endl;
+
+  vector<Clause*> unsatClauses;
   // 1. For try t = 0 to maxTries
   for (int t = 0; t < wsMaxTries; t++) {
     // 1.1 Assign all Varibles with random values
-    for (Variable* var : fg->GetUnassignedVariables()) {
+    for (Variable* var : variables) {
       var->AssignValue(getRandomBool());
+      // cout << var << endl;
+    }
+
+    // Separate clauses into sat and unsat
+    unsatClauses.clear();
+    for (Clause* clause : clauses) {
+      if (!clause->IsSAT()) unsatClauses.push_back(clause);
     }
 
     // 1.2 For flip f = 0 to maxFlips:
     for (int f = 0; f < wsMaxFlips; f++) {
+      // string a;
+      // cin >> a;
+      // if (f % 1000 == 0)
+      // cout << "f: " << f << " unsat c: " << unsatClauses.size() << endl;
+      // cout << "unsat clauses: " << endl;
+      // for (Clause* c : unsatClauses) {
+      //   cout << " - " << c << endl;
+      // }
       // 1.2.1 If FactorGraph is satisfied, return true
-      if (fg->IsSAT()) return SAT;
+      // if (fg->IsSAT()) return SAT;
 
       // 1.2.2 Randomly select an unsatisfied clause and calculate the
       // break-count of its variables
 
-      // Separate clauses into sat and unsat
-      std::vector<Clause*> satClauses;
-      std::vector<Clause*> unsatClauses;
-      for (Clause* clause : fg->GetEnabledClauses()) {
-        if (clause->IsSAT())
-          satClauses.push_back(clause);
-        else
-          unsatClauses.push_back(clause);
-      }
+      if (unsatClauses.size() == 0) return SAT;
 
       // Select random unsat clause
       std::uniform_int_distribution<> randomInt(0, unsatClauses.size() - 1);
@@ -426,185 +448,85 @@ AlgorithmResult Solver::walksat() {
       Clause* selectedClause = unsatClauses[randIndex];
       std::vector<Edge*> selectedClauseEdges =
           selectedClause->GetEnabledEdges();
-
+      // cout << "Random unsat clause: C" << selectedClause->id << endl;
       // Calculate break-count (number of currently satisfied clauses
       // that become unsatisfied if the variable value is fliped) of variables
       // in selected clause
-      Variable* lowestBreakCountVar = nullptr;
-      int lowestBreakCount = satClauses.size() + 1;
+      vector<Variable*> lowestBreakCountVar;
+      int lowestBreakCount = N * alpha + 1;
       for (Edge* edge : selectedClauseEdges) {
+        // cout << edge->variable << endl;
         int breakCount = 0;
         // Flip variable and count
-        edge->variable->AssignValue(!edge->variable->value);
-        for (Clause* satClause : satClauses) {
-          if (!satClause->IsSAT()) breakCount++;
+        for (Edge* e : edge->variable->allNeighbourEdges) {
+          if (e->clause->IsSAT()) {
+            edge->variable->AssignValue(!edge->variable->value);
+            if (!e->clause->IsSAT()) breakCount++;
+            edge->variable->AssignValue(!edge->variable->value);
+          }
         }
-        // flip again to stay as it was
-        edge->variable->AssignValue(!edge->variable->value);
+
+        // cout << edge->variable << endl;
+        // cout << "BC: " << breakCount << endl;
 
         // Update lowest break-count
-        if (lowestBreakCountVar == nullptr || breakCount < lowestBreakCount) {
-          lowestBreakCountVar = edge->variable;
+        if (breakCount == lowestBreakCount)
+          lowestBreakCountVar.push_back(edge->variable);
+        if (breakCount < lowestBreakCount) {
+          lowestBreakCountVar.clear();
+          lowestBreakCountVar.push_back(edge->variable);
           lowestBreakCount = breakCount;
         }
-
-        // If break-count = 0 no need to count more
-        if (breakCount == 0) break;
       }
 
       // 1.2.3 Flip a Variable of the Clause if has break-count = 0
       // If not, with probability p (noise), flip a random variable and
       // with probability 1 - p, flip the variable with lowest break-count
-      if (lowestBreakCount == 0) {
-        lowestBreakCountVar->AssignValue(!lowestBreakCountVar->value);
-      } else {
-        // probability 1 - p
-        if (getRandomReal01() > wsNoise) {
-          lowestBreakCountVar->AssignValue(!lowestBreakCountVar->value);
+      Variable* var = nullptr;
+      if (lowestBreakCount == 0 || getRandomReal01() > wsNoise) {
+        if (lowestBreakCountVar.size() == 1) {
+          // cout << "Selected the variable with lowest break count (only one)"
+          //      << endl;
+          var = lowestBreakCountVar[0];
+        } else {
+          // cout
+          //     << "Selected the variable with lowest break count (more than
+          //     one)"
+          //     << endl;
+          // for (Variable* var : lowestBreakCountVar) cout << var << endl;
+          uniform_int_distribution<> randi(0, lowestBreakCountVar.size() - 1);
+          int i = randi(randomGenerator);
+          var = lowestBreakCountVar[i];
         }
-        // probability p
-        else {
-          std::uniform_int_distribution<> randEdgeIndexDist(
-              0, selectedClauseEdges.size() - 1);
-          int randomEdgeIndex = randEdgeIndexDist(randomGenerator);
-          Variable* var = selectedClauseEdges[randomEdgeIndex]->variable;
-          var->AssignValue(!var->value);
+      }
+      // probability p
+      else {
+        // cout << "Selected random variable" << endl;
+        std::uniform_int_distribution<> randEdgeIndexDist(
+            0, selectedClauseEdges.size() - 1);
+        int randomEdgeIndex = randEdgeIndexDist(randomGenerator);
+        var = selectedClauseEdges[randomEdgeIndex]->variable;
+      }
+
+      // cout << "Variable to flip: X" << var->id << endl;
+
+      for (Edge* e : var->allNeighbourEdges) {
+        if (!e->clause->IsSAT()) {
+          unsatClauses.erase(
+              find(unsatClauses.begin(), unsatClauses.end(), e->clause));
         }
+      }
+
+      var->AssignValue(!var->value);
+
+      for (Edge* e : var->allNeighbourEdges) {
+        if (!e->clause->IsSAT()) unsatClauses.push_back(e->clause);
       }
     }
   }
 
   // 2. If a sat assignment was not found, return false.
   return INDETERMINATE;
-
-  // // Get sub graph to solve
-  // vector<Variable*> variables = fg->GetUnassignedVariables();
-  // vector<Clause*> clauses = fg->GetEnabledClauses();
-
-  // // http://lcs.ios.ac.cn/~caisw/Paper/Faster_WalkSAT.pdf
-  // for (Variable* var : variables) {
-  //   for (Edge* edge : var->allNeighbourEdges) {
-  //     if (edge->enabled) {
-  //       if (edge->type)
-  //         var->positiveNeighbourEdges.push_back(edge);
-  //       else
-  //         var->negativeNeighbourEdges.push_back(edge);
-  //     }
-  //   }
-  // }
-
-  // // Update walksat parameter
-  // wsMaxFlips = 100 * variables.size();
-
-  // // Tries loop
-  // for (int t = 0; t < wsMaxTries; t++) {
-  //   // Assign variables with random values
-  //   for (Variable* var : variables) var->AssignValue(getRandomBool());
-
-  //   // Separate clauses into sat and unsat
-  //   vector<Clause*> unsatClauses;
-  //   for (Clause* clause : clauses) {
-  //     clause->trueLiterals = 0;
-  //     for (Edge* e : clause->allNeighbourEdges) {
-  //       if (e->enabled) {
-  //         if (e->type == e->variable->value) clause->trueLiterals++;
-  //       }
-  //     }
-  //     if (clause->trueLiterals == 0) unsatClauses.push_back(clause);
-  //   }
-
-  //   // Flips loop
-  //   for (int f = 0; f < wsMaxFlips; f++) {
-  //     // If no unsat clauses finish algorithm
-  //     if (unsatClauses.size() == 0)
-  //       return SAT;
-  //     else
-  //       cout << fg << endl;
-
-  //     // Select random unsat clause, only interest in neighbour variables
-  //     uniform_int_distribution<> randomInt(0, unsatClauses.size() - 1);
-  //     int randIndex = randomInt(randomGenerator);
-  //     vector<Edge*> selectedClauseEdges =
-  //         unsatClauses[randIndex]->GetEnabledEdges();
-
-  //     // Calculate break-count (number of currently satisfied clauses
-  //     // that become unsatisfied if the variable value is fliped) of
-  //     variables
-  //     // in selected clause
-  //     Variable* lowestBreakCountVar = nullptr;
-  //     int lowestBreakCount = clauses.size() + 1;
-  //     for (Edge* edge : selectedClauseEdges) {
-  //       // Count how many of the clauses where the variable appears are sat
-  //       int breakCount = 0;
-  //       if (edge->variable->value) {
-  //         for (Edge* e : edge->variable->positiveNeighbourEdges) {
-  //           if (e->clause->trueLiterals == 1) breakCount++;
-  //           if (breakCount > lowestBreakCount) break;
-  //         }
-  //       } else {
-  //         for (Edge* e : edge->variable->negativeNeighbourEdges) {
-  //           if (e->clause->trueLiterals == 1) breakCount++;
-  //           if (breakCount > lowestBreakCount) break;
-  //         }
-  //       }
-
-  //       // Update lowest break-count
-  //       if (breakCount < lowestBreakCount) {
-  //         lowestBreakCountVar = edge->variable;
-  //         lowestBreakCount = breakCount;
-
-  //         // Best flip found
-  //         if (breakCount < 1) break;
-  //       }
-  //     }
-
-  //     // Select the variable to flip that has break-count < 1
-  //     // If not, with probability p (noise), select a random variable and
-  //     // with probability 1 - p, sleect the variable with lowest break-count
-  //     Variable* var = nullptr;
-  //     if (lowestBreakCount < 1) {
-  //       var = lowestBreakCountVar;
-  //     } else {
-  //       // probability 1 - p
-  //       if (getRandomReal01() > wsNoise) {
-  //         var = lowestBreakCountVar;
-  //       }
-  //       // probability p
-  //       else {
-  //         uniform_int_distribution<> randEdgeIndexDist(
-  //             0, selectedClauseEdges.size() - 1);
-  //         int randomEdgeIndex = randEdgeIndexDist(randomGenerator);
-  //         var = selectedClauseEdges[randomEdgeIndex]->variable;
-  //       }
-  //     }
-
-  //     // Flip variable
-  //     cout << "Fliping variable X" << var->id << " from value " << var->value
-  //          << " to value " << !var->value << " (bc: " << lowestBreakCount <<
-  //          ")"
-  //          << endl;
-  //     var->AssignValue(!var->value);
-  //     for (Edge* edge : var->allNeighbourEdges) {
-  //       if (edge->enabled) {
-  //         edge->clause->trueLiterals = 0;
-  //         for (Edge* e : edge->clause->allNeighbourEdges) {
-  //           if (e->enabled) {
-  //             if (e->type == e->variable->value)
-  //             edge->clause->trueLiterals++;
-  //           }
-  //         }
-  //         if (edge->clause->trueLiterals == 0)
-  //           unsatClauses.push_back(edge->clause);
-  //         else
-  //           remove(unsatClauses.begin(), unsatClauses.end(), edge->clause);
-  //       }
-  //     }
-  //   }
-  //   // Max flips reached
-  // }
-
-  // // Max tries reached, solution not found
-  // return INDETERMINATE;
 }
 
 }  // namespace sat
