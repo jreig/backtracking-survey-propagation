@@ -25,6 +25,9 @@ AlgorithmResult Solver::SID(FactorGraph* graph, double fraction) {
   fg = graph;
   sidFraction = fraction;
 
+  int assignFraction = (int)(N * fraction);
+  if (assignFraction < 1) assignFraction = 1;
+
   // --------------------------------
   // Random initialization of surveys
   // --------------------------------
@@ -52,36 +55,53 @@ AlgorithmResult Solver::SID(FactorGraph* graph, double fraction) {
     for (Variable* var : fg->variables) {
       if (!var->assigned) {
         evaluateVar(var);
-        sumMaxBias += var->Hp > var->Hm ? var->Hp : var->Hm;
+        // printf("X%d H.p:%f - H.m:%f\n", var->id, var->Hp, var->Hm);
+        // cout << "X" << var->id << " H.p:" << var->Hp << " - H.m:" << var->Hm
+        // << endl;
+        double maxBias = var->Hp > var->Hm ? var->Hp : var->Hm;
+        sumMaxBias += maxBias;
         unassignedVariables.push_back(var);
       }
     }
 
+    // int prevUnsassignedVars = unassignedVariables.size();
+
+    // printf("<bias>:%f\n", sumMaxBias / unassignedVariables.size());
+    // string a;
+    // cin >> a;
     // Check paramagnetic state
     // TODO: Entender que significa esto, en el codigo original, este es
     // el unico sitio donde se llama a walksat
-    // if (sumMaxBias / unassignedVariables.size() < paramagneticState) {
-    //   cout << "Paramagnetic state reached" << endl;
-    //   cout << fg << endl;
-    //   return walksat();
-    // }
+    if (sumMaxBias / unassignedVariables.size() < paramagneticState) {
+      cout << "Paramagnetic state reached" << endl;
+      cout << fg << endl;
+      return walksat();
+    }
 
     // Assign minimum 1 variable
-    int assignFraction = (int)(unassignedVariables.size() * fraction);
-    if (assignFraction < 1) assignFraction = 1;
     sort(unassignedVariables.begin(), unassignedVariables.end(),
          [](const Variable* lvar, const Variable* rvar) {
-           return abs(lvar->evalValue) > abs(rvar->evalValue);
+           return std::abs(lvar->evalValue) > std::abs(rvar->evalValue);
          });
+
+    // cout << unassignedVariables[0]->id << ": "
+    //      << unassignedVariables[0]->evalValue << ", "
+    //      << unassignedVariables[1]->id << ": "
+    //      << unassignedVariables[1]->evalValue << ", "
+    //      << unassignedVariables[2]->id << ": "
+    //      << unassignedVariables[2]->evalValue << endl;
 
     // ------------------------
     // Fix the set of variables
     // ------------------------
-    for (int i = 0; i < assignFraction; i++) {
+    // int assignFraction = (int)(unassignedVariables.size() * fraction);
+    // if (assignFraction < 1) assignFraction = 1;
+    int auxAssign = assignFraction;
+    for (int i = 0; i < auxAssign; i++) {
       // Variables in the list can be already assigned due to UP being executed
       // in previous iterations
       if (unassignedVariables[i]->assigned) {
-        assignFraction++;  // Don't count this variable as a new assignation
+        auxAssign++;  // Don't count this variable as a new assignation
         continue;
       }
 
@@ -93,13 +113,20 @@ AlgorithmResult Solver::SID(FactorGraph* graph, double fraction) {
       // Recalculate biases for same reason, previous assignations clean the
       // graph and change relations
       evaluateVar(var);
-      bool newValue = var->Hp > var->Hm ? true : false;
+      bool newValue = var->Hp > var->Hm ? false : true;
 
       if (!assignVariable(var, newValue)) {
         // Error found when assigning variable
         return CONTRADICTION;
       }
     }
+
+    // int postUnassignVars = fg->GetUnassignedVariables().size();
+    // int upAssignedVars =
+    //     prevUnsassignedVars - postUnassignVars - assignFraction;
+    // cout << "Assigned " << assignFraction << " variables (+" <<
+    // upAssignedVars
+    //      << " up)" << endl;
 
     // ----------------------------
     // If SAT finish algorithm
@@ -113,8 +140,8 @@ AlgorithmResult Solver::SID(FactorGraph* graph, double fraction) {
 AlgorithmResult Solver::surveyPropagation() {
   // Calculate subproducts of all variables
   computeSubProducts();
-
   for (int i = 0; i < spMaxIt; i++) {
+    // cout << "." << flush;
     // Randomize clause iteration
     vector<Clause*> enabledClauses = fg->GetEnabledClauses();
     shuffle(enabledClauses.begin(), enabledClauses.end(), randomGenerator);
@@ -133,17 +160,22 @@ AlgorithmResult Solver::surveyPropagation() {
     if (maxConvergeDiff <= spEpsilon) {
       // If max difference of convergence is 0, all are 0
       // which is a trivial state and walksat must be called
-      if (maxConvergeDiff < ZERO_EPSILON) {
-        cout << "Trivial state reached" << endl;
-        cout << fg << endl;
-        return walksat();
-      }
+
+      // cout << ":-)" << endl;
+      // string aa;
+      // cin >> aa;
+
+      // if (maxConvergeDiff < ZERO_EPSILON) {
+      //   cout << "Trivial state reached" << endl;
+      //   cout << fg << endl;
+      //   return walksat();
+      // }
 
       // If not triavial return and continue algorith
       return CONVERGE;
     }
   }
-
+  // cout << ":-(" << endl;
   // Max itertions reach without convergence
   return UNCONVERGE;
 }
@@ -159,8 +191,8 @@ void Solver::computeSubProducts() {
       // For each edge connecting the variable to a clause
       for (Edge* edge : var->allNeighbourEdges) {
         if (edge->enabled) {
-          // If edge is positive update positive subproduct of variable
-          if (edge->type) {
+          // If edge is negative update positive subproduct of variable
+          if (!edge->type) {
             // If edge survey != 1
             if (1.0 - edge->survey > ZERO_EPSILON) {
               var->p *= 1.0 - edge->survey;
@@ -169,7 +201,7 @@ void Solver::computeSubProducts() {
             else
               var->pzero++;
           }
-          // If edge is negative, update negative subproduct of variable
+          // If edge is positive, update negative subproduct of variable
           else {
             // If edge survey != 1
             if (1.0 - edge->survey > ZERO_EPSILON) {
@@ -195,12 +227,12 @@ double Solver::updateSurveys(Clause* clause) {
   // Calculate subProducts of all literals and keep track of wich are 0
   // ==================================================================
   for (Edge* edge : clause->allNeighbourEdges) {
-    if (edge->enabled) {
+    if (edge->enabled && !edge->variable->assigned) {
       Variable* var = edge->variable;
       double m, p, wn, wt;
 
-      // If edge is positive:
-      if (edge->type) {
+      // If edge is negative:
+      if (!edge->type) {
         m = var->mzero ? 0 : var->m;
         if (var->pzero == 0)
           p = var->p / (1.0 - edge->survey);
@@ -212,7 +244,7 @@ double Solver::updateSurveys(Clause* clause) {
         wn = p * (1.0 - m);
         wt = m;
       }
-      // If edge is negative
+      // If edge is positive
       else {
         p = var->pzero ? 0 : var->p;
         if (var->mzero == 0)
@@ -223,7 +255,7 @@ double Solver::updateSurveys(Clause* clause) {
           m = 0.0;
 
         wn = m * (1 - p);
-        wt = m;
+        wt = p;
       }
 
       // Calculate subSurvey
@@ -231,9 +263,10 @@ double Solver::updateSurveys(Clause* clause) {
       subSurveys.push_back(subSurvey);
 
       // If subsurvey is 0 keep track but don't multiply
-      if (subSurvey < ZERO_EPSILON)
+      if (subSurvey < ZERO_EPSILON) {
         zeros++;
-      else
+        if (zeros == 2) break;
+      } else
         allSubSurveys *= subSurvey;
     }
   }
@@ -243,7 +276,7 @@ double Solver::updateSurveys(Clause* clause) {
   // =========================================================
   int i = 0;
   for (Edge* edge : clause->allNeighbourEdges) {
-    if (edge->enabled) {
+    if (edge->enabled && !edge->variable->assigned) {
       // ---------------------------------------------
       // Calculate new survey from sub survey products
       // ---------------------------------------------
@@ -262,8 +295,8 @@ double Solver::updateSurveys(Clause* clause) {
       // Update the variable subproducts with new survey info
       // ----------------------------------------------------
       Variable* var = edge->variable;
-      // If edge is positive update positive subproduct
-      if (edge->type) {
+      // If edge is negative update positive subproduct
+      if (!edge->type) {
         // If previous survey != 1 (with an epsilon margin)
         if (1.0 - edge->survey > ZERO_EPSILON) {
           // If new survey != 1, update the sub product with the difference
@@ -286,7 +319,7 @@ double Solver::updateSurveys(Clause* clause) {
           }
         }
       }
-      // If edge is negative, update negative subproduct
+      // If edge is positive, update negative subproduct
       else {
         // If previous survey != 1 (with an epsilon margin)
         if (1.0 - edge->survey > ZERO_EPSILON) {
@@ -314,9 +347,9 @@ double Solver::updateSurveys(Clause* clause) {
       // ----------------------------------------------------
       // Store new survey and update max clause converge diff
       // ----------------------------------------------------
-      double edgeConvDiff = abs(edge->survey - newSurvey);
-      if (edgeConvDiff > maxConvDiffInClause)
-        maxConvDiffInClause = edgeConvDiff;
+      double edgeConvDiff = std::abs(edge->survey - newSurvey);
+      if (maxConvDiffInClause < edgeConvDiff)
+        maxConvDiffInClause = std::abs(edgeConvDiff);
 
       edge->survey = newSurvey;
       i++;
@@ -328,9 +361,8 @@ double Solver::updateSurveys(Clause* clause) {
 
 bool Solver::assignVariable(Variable* var, bool value) {
   // Contradiction if variable was already assigned with different value
-  if (var->assigned && var->value != value) {
-    cout << "ERROR: Variable X" << var->id
-         << " already assigned with opposite value" << endl;
+  if (var->assigned) {
+    cout << "ERROR: Variable X" << var->id << " already assigned" << endl;
     return false;
   }
 
@@ -391,13 +423,17 @@ void Solver::evaluateVar(Variable* var) {
   var->Hm /= sum;
 
   // Store eval value
-  var->evalValue = abs(var->Hp - var->Hm);
+  var->evalValue = std::abs(var->Hp - var->Hm);
 }
 
 AlgorithmResult Solver::walksat() {
   // get subgraph
   vector<Variable*> variables = fg->GetUnassignedVariables();
   vector<Clause*> clauses = fg->GetEnabledClauses();
+
+  cout << "Sub formula has:" << endl;
+  cout << " - " << clauses.size() << " clauses" << endl;
+  cout << " - " << variables.size() << " variables" << endl;
 
   // for (Variable* var : variables) {
   //   cout << var << endl;

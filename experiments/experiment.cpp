@@ -55,7 +55,7 @@ int main(int argc, char* argv[]) {
   double fractionParams[6] = {
       0.04, 0.02, 0.01, 0.005, 0.0025, 0.00125,
   };
-  // double fractionParams[1] = {0.01};
+  // double fractionParams[1] = {0.005};
   int totalCnfInstances = CNF_INSTANCES;
   int totalVariables = atoi(argv[1]);
   double alpha = atof(argv[2]);
@@ -107,7 +107,7 @@ int main(int argc, char* argv[]) {
     cout << " - f: " << fraction << endl;
     cout << "------------------------------" << endl;
 
-    bool verbose = true;
+    bool verbose = false;
 
     int totalConvergedInstances = 0;
     int totalSATInstances = 0;
@@ -158,7 +158,8 @@ int main(int argc, char* argv[]) {
     // Results
     double satInstPercent = totalSATInstances * 100.0 / totalCnfInstances;
     cout << endl;
-    cout << "Results:" << endl;
+    cout << "Results [" << totalVariables << " - " << alpha << " - " << fraction
+         << "]:" << endl;
     cout << " Converged Instances: " << totalConvergedInstances << endl;
     cout << " SAT instances: ";
     cout << totalSATInstances << " (" << satInstPercent << "%)" << endl;
@@ -173,6 +174,9 @@ int main(int argc, char* argv[]) {
 
     // If all instances solved, stop experiment, if not, continue with next f
     if (totalCnfInstances == totalSATInstances) break;
+
+    // std::string a;
+    // cin >> a;
   }
 
   return 0;

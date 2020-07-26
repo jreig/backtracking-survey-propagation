@@ -3,7 +3,8 @@
 # ------------------------------------------------------------------------------
 
 CXX 						= g++
-FLAGS 					= -g -Wall -std=c++17
+# FLAGS 					= -g -Wall -std=c++17
+FLAGS 					= -Wall -O3 -std=c++17
 BUILD_DIR 			= build
 SRC_DIR 				= src
 INCLUDE					= -I include/ -I libs/

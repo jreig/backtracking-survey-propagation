@@ -128,7 +128,7 @@ FactorGraph::FactorGraph(std::ifstream& file) {
 
       // Create clauses
       for (unsigned i = 0; i < totalClauses; i++) {
-        Clause* clause = new Clause(i);
+        Clause* clause = new Clause(i + 1);
         clauses.push_back(clause);
       }
 
@@ -143,7 +143,7 @@ FactorGraph::FactorGraph(std::ifstream& file) {
           if (token != "0") {
             const int variableValue = stoi(token);
             // variables start from 1 and indices from 0
-            const int variableIndex = abs(variableValue) - 1;
+            const int variableIndex = std::abs(variableValue) - 1;
 
             // Create an edge
             bool edgeType = variableValue > 0;
