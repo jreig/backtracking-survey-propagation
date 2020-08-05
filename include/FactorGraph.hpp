@@ -113,6 +113,13 @@ class Clause {
   void Dissable();
 
   // ---------------------------------------------------------------------------
+  // countTrueLiterals
+  //
+  // Return and store how many true literals has the clause
+  // ---------------------------------------------------------------------------
+  int countTrueLiterals();
+
+  // ---------------------------------------------------------------------------
   // IsSAT
   //
   // Check that the clause contains an assigned variable that satisfies it

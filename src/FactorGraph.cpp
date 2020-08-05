@@ -53,6 +53,16 @@ void Clause::Dissable() {
   }
 }
 
+int Clause::countTrueLiterals() {
+  trueLiterals = 0;
+  for (Edge* edge : allNeighbourEdges) {
+    if (edge->variable->assigned && edge->type == edge->variable->value)
+      trueLiterals++;
+  }
+
+  return trueLiterals > 0;
+}
+
 bool Clause::IsSAT() const {
   for (Edge* edge : allNeighbourEdges) {
     if (edge->variable->assigned && edge->type == edge->variable->value)

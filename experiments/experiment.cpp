@@ -107,8 +107,6 @@ int main(int argc, char* argv[]) {
     cout << " - f: " << fraction << endl;
     cout << "------------------------------" << endl;
 
-    bool verbose = false;
-
     int totalConvergedInstances = 0;
     int totalSATInstances = 0;
     int totalSPSATIterations = 0;
@@ -119,7 +117,7 @@ int main(int argc, char* argv[]) {
         cerr << "ERROR: Can't open file " << path << endl;
         break;
       } else {
-        if (verbose) cout << "Solving file " << path << endl;
+        cout << "Solving file " << path << endl;
       }
 
       FactorGraph* graph = new FactorGraph(file);
@@ -133,23 +131,21 @@ int main(int argc, char* argv[]) {
       // totalSPSATIterations += result.totalSPIterations;
 
       // Print result
-      if (verbose) {
-        if (result == SAT)
-          cout << "Solved: SAT" << endl;
-        else if (result == UNCONVERGE)
-          cout << "Solved: UNCONVERGE" << endl;
-        else if (result == CONTRADICTION)
-          cout << "Solved: CONTRADICTION" << endl;
-        else if (result == INDETERMINATE)
-          cout << "Solved: INDETERMINATE" << endl;
 
-        // Print elapsed time
-        cout
-            << "Elapsed time = "
-            << chrono::duration_cast<chrono::seconds>(endSID - beginSID).count()
-            << "s" << endl;
-        cout << endl;
-      }
+      if (result == SAT)
+        cout << "Solved: SAT" << endl;
+      else if (result == UNCONVERGE)
+        cout << "Solved: UNCONVERGE" << endl;
+      else if (result == CONTRADICTION)
+        cout << "Solved: CONTRADICTION" << endl;
+      else if (result == INDETERMINATE)
+        cout << "Solved: INDETERMINATE" << endl;
+
+      // Print elapsed time
+      cout << "Elapsed time = "
+           << chrono::duration_cast<chrono::seconds>(endSID - beginSID).count()
+           << "s" << endl;
+      cout << endl;
 
       delete graph;
     }
