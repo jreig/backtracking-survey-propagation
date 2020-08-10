@@ -1,6 +1,7 @@
 #include <string.h>
 
 #include <chrono>
+#include <filesystem>
 #include <iostream>
 #include <sstream>
 #include <string>
@@ -10,86 +11,147 @@
 #include <Configuration.hpp>
 #include <FactorGraph.hpp>
 #include <Solver.hpp>
+#include <Validator.hpp>
 
-using namespace std;
 using namespace sat;
+using namespace std;
 
-// ---------------------------------------------------------------------------
-// GetRandomCNFFiles
-//
-// Get the random CNF instances with the given parameters and return an array
-// of the file paths.
-// CNFs are stored in DIMACS files in the experiments/instances/ folder.
-// ---------------------------------------------------------------------------
-vector<string> GetRandomCNFFiles(int totalInstances, int N, double alpha,
-                                 const string& generator) {
-  vector<string> paths;
+// -----------------------------------------------------------------------------
+// Struct to save experiment parameters
+// -----------------------------------------------------------------------------
+struct ExperimentArgs {
+  string g;
+  int N;
+  double a;
+  unsigned int s;
+  int m;
+  string baseDir;
+  int I = 50;
+  double fractionParams[6] = {0.04, 0.02, 0.01, 0.005, 0.0025, 0.00125};
+  int c = 100;
+  double Q = -1;
+};
 
-  for (int i = 1; i <= totalInstances; i++) {
+// -----------------------------------------------------------------------------
+// Build needed directories
+// -----------------------------------------------------------------------------
+void buildDirs(ExperimentArgs* args) {
+  ostringstream ss;
+  ss << "experiments/" << args->g << "/" << args->N << "/" << args->a;
+  if (args->Q >= 0) ss << "/" << args->Q;
+  string baseDir = ss.str();
+
+  std::filesystem::create_directories(baseDir);
+  std::filesystem::create_directory(baseDir + "/cnf");
+  std::filesystem::create_directory(baseDir + "/cnf-solutions");
+
+  args->baseDir = baseDir;
+}
+
+// -----------------------------------------------------------------------------
+// Create cnf files
+// -----------------------------------------------------------------------------
+void createCNFFiles(ExperimentArgs* args) {
+  for (int i = 1; i <= args->I; i++) {
+    // Build file path
     ostringstream ss;
-    string dir = "experiments/instances/";
-    ss << dir << generator << "_3SAT_" << N << "N_" << alpha << "R_" << i
-       << ".cnf";
-    string path = ss.str();
-    paths.push_back(path);
+    ss << args->baseDir << "/cnf/" << i << ".cnf";
+    string cnfFile = ss.str();
+    unsigned int seed = i + args->m + args->s;
 
-    // TODO: Test only first cnf
-    // break;
+    // Build generator executable path with arguments and execute it
+    ostringstream exe;
+    if (args->g == "random") {
+      exe << "./libs/cnf-generator/random -n " << args->N << " -m " << args->m
+          << " -k 3 -s " << seed << " -o " << cnfFile;
+    } else {
+      exe << "./libs/cnf-generator/commAttach -n " << args->N << " -m "
+          << args->m << " -k 3 -c " << args->c << " -Q " << args->Q << " -s "
+          << seed << " -o " << cnfFile;
+    }
+    int retCode = system(exe.str().c_str());
+    if (retCode) {
+      cerr << "ERROR: cnf file creation failed" << endl;
+      exit(-1);
+    }
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Parse command line arguments
+// -----------------------------------------------------------------------------
+ExperimentArgs* parseArgs(int argc, char* argv[]) {
+  ExperimentArgs* args = new ExperimentArgs();
+
+  // Check number of arguments
+  if (argc != 5 && argc != 6) {
+    cout << "Usage:" << endl;
+    cout << "\t./experiment N a random seed" << endl;
+    cout << "\t./experiment N a community seed Q" << endl;
+    cout << "If seed = 0, random seed is used" << endl;
+    exit(-1);
   }
 
-  return paths;
+  // Read arguments
+  args->N = atoi(argv[1]);
+  args->a = atof(argv[2]);
+  if (strcmp(argv[3], "random") == 0 || strcmp(argv[3], "community") == 0) {
+    args->g = argv[3];
+    if (strcmp(argv[3], "community") == 0) {
+      args->Q = atof(argv[4]);
+      args->s = atoi(argv[5]);
+    } else
+      args->s = atoi(argv[4]);
+  } else {
+    cout << "Invalid cnf generator. Use random or community";
+    exit(-1);
+  }
+
+  // Build derived args
+  args->m = args->N * args->a;
+
+  return args;
 }
 
 // Entry point
 int main(int argc, char* argv[]) {
   // ---------------------------------------------------------------------------
-  // Parse arguments
+  // Initialize environment
   // ---------------------------------------------------------------------------
-  if (argc != 5) {
-    cout << "Invalid arguments. Usage: ./experiment N A [random|community] seed"
-         << endl;
-    cout << "If seed = 0, random seed is used" << endl;
-    return -1;
-  }
-
-  double fractionParams[6] = {
-      0.04, 0.02, 0.01, 0.005, 0.0025, 0.00125,
-  };
-  // double fractionParams[1] = {0.005};
-  int totalCnfInstances = CNF_INSTANCES;
-  int totalVariables = atoi(argv[1]);
-  double alpha = atof(argv[2]);
-  string generator = "random";
-  if (argc == 4) {
-    if (strcmp(argv[3], "random") == 0 || strcmp(argv[3], "community") == 0) {
-      generator = argv[3];
-    } else {
-      cout << "Invalid cnf generator. Use random or community";
-      return -1;
-    }
-  }
-  unsigned int seed = atoi(argv[4]);
+  ExperimentArgs* args = parseArgs(argc, argv);
 
   cout << "===========================================================" << endl;
-  cout << "==                RUNNING BASE EXPERIMENT                ==" << endl;
+  cout << "==                  RUNNING  EXPERIMENT                  ==" << endl;
   cout << "===========================================================" << endl;
   cout << endl;
   cout << "Experiment parameters:" << endl;
-  cout << " - N (variables) = " << totalVariables << endl;
-  cout << " - α (clauses/variables ratio) = " << alpha << endl;
-  cout << " - 3-SAT CNF generator = " << generator << endl;
-  cout << " - Seed = " << seed << endl;
+  cout << " - N (variables) = " << args->N << endl;
+  cout << " - α (clauses/variables ratio) = " << args->a << endl;
+  cout << " - 3-SAT CNF generator = " << args->g << endl;
+  cout << " - Seed = " << args->s << endl;
+  if (args->Q >= 0) {
+    cout << " - c (communities) = 100" << endl;
+    cout << " - Q = " << args->Q << endl;
+  }
   cout << endl;
 
   cout << "Setting up experiment environment..." << endl;
 
-  Solver solver(totalVariables, alpha, seed);
+  buildDirs(args);
+  ofstream resultFile;
+  resultFile.open(args->baseDir + "/result.csv");
+  if (args->Q < 0)
+    resultFile << "N,a,f,sat,sp,unconv,contr,indet,totaltime\n";
+  else
+    resultFile << "N,a,Q,f,sat,sp,unconv,contr,indet,totaltime\n";
+  resultFile.close();
 
-  if (seed == 0) cout << "Initial seed: " << solver.initialSeed << endl;
+  Validator validator;
+  Solver solver(args->N, args->a, args->s);
+  if (args->s == 0) cout << "Random seed: " << solver.initialSeed << endl;
 
-  // Get random CNF instances
-  vector<string> paths =
-      GetRandomCNFFiles(totalCnfInstances, totalVariables, alpha, generator);
+  cout << "Generating CNF files..." << endl;
+  createCNFFiles(args);
 
   cout << "Done!" << endl;
 
@@ -97,52 +159,65 @@ int main(int argc, char* argv[]) {
   // Run experiments
   // ---------------------------------------------------------------------------
   int experimentId = 1;
-
-  for (double fraction : fractionParams) {
+  resultFile.open(args->baseDir + "/result.csv", ofstream::app);
+  for (double fraction : args->fractionParams) {
     cout << endl << endl;
     cout << "------------------------------" << endl;
     cout << "Experiment " << experimentId << ":" << endl;
-    cout << " - N: " << totalVariables << endl;
-    cout << " - α: " << alpha << endl;
+    cout << " - N: " << args->N << endl;
+    cout << " - α: " << args->a << endl;
+    if (args->Q >= 0) cout << " - Q: " << args->Q << endl;
     cout << " - f: " << fraction << endl;
     cout << "------------------------------" << endl;
 
-    int totalConvergedInstances = 0;
+    // Metrics
     int totalSATInstances = 0;
     int totalSPSATIterations = 0;
+    int totalUnconvergedInstances = 0;
+    int totalContradictionsInstances = 0;
+    int totalIndeterminateInstances = 0;
     chrono::steady_clock::time_point begin = chrono::steady_clock::now();
-    for (string path : paths) {
+
+    for (int i = 1; i <= args->I; i++) {
+      string path = args->baseDir + "/cnf/" + to_string(i) + ".cnf";
       ifstream file(path);
       if (!file.is_open()) {
         cerr << "ERROR: Can't open file " << path << endl;
-        break;
-      } else {
-        cout << "Solving file " << path << endl;
+        exit(-1);
       }
+      cout << "Solving file " << path << endl;
 
       FactorGraph* graph = new FactorGraph(file);
       chrono::steady_clock::time_point beginSID = chrono::steady_clock::now();
       AlgorithmResult result = solver.SID(graph, fraction);
       chrono::steady_clock::time_point endSID = chrono::steady_clock::now();
 
-      // Experiment metrics
-      if (result != UNCONVERGE) totalConvergedInstances += 1;
-      if (result == SAT) totalSATInstances++;
-      // totalSPSATIterations += result.totalSPIterations;
-
-      // Print result
-
-      if (result == SAT)
+      // Get result and update metrics
+      if (result == SAT) {
+        totalSATInstances++;
+        totalSPSATIterations += solver.totalSPIterations;
+        string solFile =
+            args->baseDir + "/cnf-solutions/" + to_string(i) + ".cnf.sol";
+        graph->storeVariableValues(solFile);
+        bool valid = validator.validateResult(path, solFile);
         cout << "Solved: SAT" << endl;
-      else if (result == UNCONVERGE)
+        if (!valid) {
+          cerr << "ERROR: Solution not valid!" << endl;
+          exit(-1);
+        }
+      } else if (result == UNCONVERGE) {
+        totalUnconvergedInstances++;
         cout << "Solved: UNCONVERGE" << endl;
-      else if (result == CONTRADICTION)
+      } else if (result == CONTRADICTION) {
+        totalContradictionsInstances++;
         cout << "Solved: CONTRADICTION" << endl;
-      else if (result == INDETERMINATE)
+      } else if (result == INDETERMINATE) {
+        totalIndeterminateInstances++;
         cout << "Solved: INDETERMINATE" << endl;
+      }
 
       // Print elapsed time
-      cout << "Elapsed time = "
+      cout << "Elapsed time: "
            << chrono::duration_cast<chrono::seconds>(endSID - beginSID).count()
            << "s" << endl;
       cout << endl;
@@ -152,28 +227,46 @@ int main(int argc, char* argv[]) {
     chrono::steady_clock::time_point end = chrono::steady_clock::now();
 
     // Results
-    double satInstPercent = totalSATInstances * 100.0 / totalCnfInstances;
+    double satInstPercent = totalSATInstances * 100.0 / args->I;
     cout << endl;
-    cout << "Results [" << totalVariables << " - " << alpha << " - " << fraction
-         << "]:" << endl;
-    cout << " Converged Instances: " << totalConvergedInstances << endl;
-    cout << " SAT instances: ";
+    if (args->Q < 0)
+      cout << "Results [" << args->N << " - " << args->a << " - " << fraction
+           << "]:" << endl;
+    else
+      cout << "Results [" << args->N << " - " << args->a << " - " << args->Q
+           << " - " << fraction << "]:" << endl;
+    cout << " SAT: ";
     cout << totalSATInstances << " (" << satInstPercent << "%)" << endl;
-    cout << " Total SP it. in SAT instances: " << totalSPSATIterations << endl;
-    cout << " Total time:"
-         << chrono::duration_cast<chrono::seconds>(end - begin).count() << "s"
+    cout << " SP it.: " << totalSPSATIterations << endl;
+    cout << " UNCONVERGED: " << totalUnconvergedInstances << endl;
+    cout << " CONTRADICTION: " << totalContradictionsInstances << endl;
+    cout << " INDETERMINATE: " << totalIndeterminateInstances << endl;
+    cout << " Total time: ";
+    cout << chrono::duration_cast<chrono::seconds>(end - begin).count() << "s"
          << endl;
     cout << endl;
+
+    // Store result
+    if (args->Q < 0)
+      resultFile << args->N << "," << args->a << "," << fraction << ",";
+    else
+      resultFile << args->N << "," << args->a << "," << args->Q << ","
+                 << fraction << ",";
+    resultFile << totalSATInstances << "," << totalSPSATIterations << ","
+               << totalUnconvergedInstances << ","
+               << totalContradictionsInstances << ","
+               << totalIndeterminateInstances << ","
+               << chrono::duration_cast<chrono::seconds>(end - begin).count()
+               << "\n";
 
     // increase experiment id
     experimentId++;
 
     // If all instances solved, stop experiment, if not, continue with next f
-    if (totalCnfInstances == totalSATInstances) break;
-
-    // std::string a;
-    // cin >> a;
+    if (args->I == totalSATInstances) break;
   }
+
+  resultFile.close();
 
   return 0;
 }

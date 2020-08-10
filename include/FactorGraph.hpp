@@ -216,6 +216,13 @@ class FactorGraph {
   bool IsSAT() const;
 
   // ---------------------------------------------------------------------------
+  // storeVariableValues
+  //
+  // Store the variable values in a file to validatethe formula
+  // ---------------------------------------------------------------------------
+  bool storeVariableValues(const std::string& filePath);
+
+  // ---------------------------------------------------------------------------
   // operator<<
   //
   // Assigned Variables: N/N - Satisfied Clauses: N/N

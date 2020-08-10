@@ -52,7 +52,7 @@ class Solver {
   double wsNoise = 0.57;
 
   // Metrics
-  // TODO
+  int totalSPIterations = 0;
 
  public:
   // inline void setSeed(int seed) { _randomGenerator.seed(seed); }

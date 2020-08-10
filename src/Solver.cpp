@@ -24,6 +24,7 @@ Solver::Solver(int N, double a, int seed)
 AlgorithmResult Solver::SID(FactorGraph* graph, double fraction) {
   fg = graph;
   sidFraction = fraction;
+  totalSPIterations = 0;
 
   int assignFraction = (int)(N * fraction);
   if (assignFraction < 1) assignFraction = 1;
@@ -74,7 +75,7 @@ AlgorithmResult Solver::SID(FactorGraph* graph, double fraction) {
     // el unico sitio donde se llama a walksat
     if (sumMaxBias / unassignedVariables.size() < paramagneticState) {
       cout << "Paramagnetic state reached" << endl;
-      cout << fg << endl;
+      // cout << fg << endl;
       return walksat();
     }
 
@@ -141,6 +142,7 @@ AlgorithmResult Solver::surveyPropagation() {
   // Calculate subproducts of all variables
   computeSubProducts();
   for (int i = 0; i < spMaxIt; i++) {
+    totalSPIterations++;
     // cout << "." << flush;
     // Randomize clause iteration
     vector<Clause*> enabledClauses = fg->GetEnabledClauses();
@@ -361,7 +363,7 @@ double Solver::updateSurveys(Clause* clause) {
 
 bool Solver::assignVariable(Variable* var, bool value) {
   // Contradiction if variable was already assigned with different value
-  if (var->assigned) {
+  if (var->assigned && var->value != value) {
     cout << "ERROR: Variable X" << var->id << " already assigned" << endl;
     return false;
   }
@@ -431,9 +433,8 @@ AlgorithmResult Solver::walksat() {
   vector<Variable*> variables = fg->GetUnassignedVariables();
   vector<Clause*> clauses = fg->GetEnabledClauses();
 
-  cout << "Sub formula has:" << endl;
-  cout << " - " << clauses.size() << " clauses" << endl;
-  cout << " - " << variables.size() << " variables" << endl;
+  cout << "Subformula has " << clauses.size() << " clauses and "
+       << variables.size() << " variables" << endl;
 
   vector<Clause*> unsatClauses;
   for (int t = 0; t < wsMaxTries; t++) {

@@ -214,6 +214,16 @@ bool FactorGraph::IsSAT() const {
   return true;
 }
 
+bool FactorGraph::storeVariableValues(const std::string& filePath) {
+  std::ofstream resultFile;
+  resultFile.open(filePath);
+  for (Variable* var : variables) {
+    resultFile << var->value << "\n";
+  }
+  resultFile.close();
+  return true;
+}
+
 std::ostream& operator<<(std::ostream& os, FactorGraph* fg) {
   unsigned totalVariables = fg->variables.size();
   unsigned assignedVariables =

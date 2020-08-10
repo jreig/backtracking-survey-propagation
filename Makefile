@@ -9,8 +9,6 @@ BUILD_DIR 			= build
 SRC_DIR 				= src
 INCLUDE					= -I include/ -I libs/
 EXP_DIR					= experiments
-EXP_INST_DIR 		= ${EXP_DIR}/instances
-EXP_RESULT_DIR 	= ${EXP_DIR}/result
 TEST_DIR				= test
 
 SRC	= $(wildcard $(SRC_DIR)/*.cpp)
@@ -23,8 +21,6 @@ build: build-dir build-experiments
 
 build-dir:
 	@mkdir -p $(BUILD_DIR)
-	@mkdir -p $(EXP_INST_DIR)
-	@mkdir -p $(EXP_RESULT_DIR)
 
 # general obj files compilation
 $(BUILD_DIR)/%.o: %.cpp

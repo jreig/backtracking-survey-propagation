@@ -36,5 +36,5 @@ build/
 .vscode/
 
 # Experiments
-experiments/instances/
-experiments/result/
+experiments/*
+!experiments/experiment.cpp
