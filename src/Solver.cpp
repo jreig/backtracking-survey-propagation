@@ -25,6 +25,7 @@ AlgorithmResult Solver::SID(FactorGraph* graph, double fraction) {
   fg = graph;
   sidFraction = fraction;
   totalSPIterations = 0;
+  totalSIDIterations = 0;
 
   int assignFraction = (int)(N * fraction);
   if (assignFraction < 1) assignFraction = 1;
@@ -38,6 +39,7 @@ AlgorithmResult Solver::SID(FactorGraph* graph, double fraction) {
 
   // Run until sat, sp unconverge or wlaksat result
   while (true) {
+    totalSIDIterations++;
     // ----------------------------
     // Run SP
     // If trivial state is reach, walksat is called and the result returned

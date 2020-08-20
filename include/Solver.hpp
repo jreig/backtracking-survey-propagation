@@ -53,6 +53,7 @@ class Solver {
 
   // Metrics
   int totalSPIterations = 0;
+  int totalSIDIterations = 0;
 
  public:
   // inline void setSeed(int seed) { _randomGenerator.seed(seed); }

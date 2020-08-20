@@ -141,9 +141,11 @@ int main(int argc, char* argv[]) {
   ofstream resultFile;
   resultFile.open(args->baseDir + "/result.csv");
   if (args->Q < 0)
-    resultFile << "N,a,f,sat,sp,unconv,contr,indet,totaltime\n";
+    resultFile
+        << "N,a,f,sat,sp,unconv,avgsiditinunconv,contr,indet,totaltime\n";
   else
-    resultFile << "N,a,Q,f,sat,sp,unconv,contr,indet,totaltime\n";
+    resultFile
+        << "N,a,Q,f,sat,sp,unconv,avgsiditinunconv,contr,indet,totaltime\n";
   resultFile.close();
 
   Validator validator;
@@ -176,6 +178,7 @@ int main(int argc, char* argv[]) {
     int totalUnconvergedInstances = 0;
     int totalContradictionsInstances = 0;
     int totalIndeterminateInstances = 0;
+    int totalSIDIterationsInUnconverged = 0;
     chrono::steady_clock::time_point begin = chrono::steady_clock::now();
 
     for (int i = 1; i <= args->I; i++) {
@@ -207,6 +210,7 @@ int main(int argc, char* argv[]) {
         }
       } else if (result == UNCONVERGE) {
         totalUnconvergedInstances++;
+        totalSIDIterationsInUnconverged += solver.totalSIDIterations;
         cout << "Solved: UNCONVERGE" << endl;
       } else if (result == CONTRADICTION) {
         totalContradictionsInstances++;
@@ -239,6 +243,11 @@ int main(int argc, char* argv[]) {
     cout << totalSATInstances << " (" << satInstPercent << "%)" << endl;
     cout << " SP it.: " << totalSPSATIterations << endl;
     cout << " UNCONVERGED: " << totalUnconvergedInstances << endl;
+    if (totalUnconvergedInstances != 0) {
+      cout << " Avg SID it. in UNCONVERGE: "
+           << (totalSIDIterationsInUnconverged / totalUnconvergedInstances)
+           << endl;
+    }
     cout << " CONTRADICTION: " << totalContradictionsInstances << endl;
     cout << " INDETERMINATE: " << totalIndeterminateInstances << endl;
     cout << " Total time: ";
@@ -253,8 +262,15 @@ int main(int argc, char* argv[]) {
       resultFile << args->N << "," << args->a << "," << args->Q << ","
                  << fraction << ",";
     resultFile << totalSATInstances << "," << totalSPSATIterations << ","
-               << totalUnconvergedInstances << ","
-               << totalContradictionsInstances << ","
+               << totalUnconvergedInstances << ",";
+    if (totalUnconvergedInstances != 0) {
+      resultFile << (totalSIDIterationsInUnconverged /
+                     totalUnconvergedInstances)
+                 << ",";
+    } else {
+      resultFile << "0,";
+    }
+    resultFile << totalContradictionsInstances << ","
                << totalIndeterminateInstances << ","
                << chrono::duration_cast<chrono::seconds>(end - begin).count()
                << "\n";
