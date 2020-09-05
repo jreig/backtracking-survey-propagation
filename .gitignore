@@ -35,6 +35,6 @@ build/
 # Visual Code
 .vscode/
 
-# Experiments
-# experiments/*
-# !experiments/experiment.cpp
+# Experiments files
+**/cnf/
+**/cnf-solutions/
