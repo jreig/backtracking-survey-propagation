@@ -1,3 +1,6 @@
+| :bangbang: | This README is outdated and do not reflect the current state of the project |
+| :--------: | :-------------------------------------------------------------------------- |
+
 # Contents
 
 This project is part of the Master's Final Project entitled "Survey Propagation
