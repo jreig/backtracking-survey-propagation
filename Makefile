@@ -42,7 +42,7 @@ clean-all: clean-test clean-src
 # ------------------------------------------------------------------------------
 
 EXP_TARGET	= experiment
-EXP_SRC			= ${SRC} $(wildcard $(EXP_DIR)/*.cpp)
+EXP_SRC			= ${SRC} #$(wildcard $(EXP_DIR)/*.cpp)
 EXP_OBJ 		= $(EXP_SRC:%.cpp=$(BUILD_DIR)/%.o) 
 
 build-experiments: $(BUILD_DIR)/$(EXP_TARGET)
@@ -50,6 +50,9 @@ build-experiments: $(BUILD_DIR)/$(EXP_TARGET)
 
 $(BUILD_DIR)/$(EXP_TARGET): $(EXP_OBJ)
 	$(CXX) $(FLAGS) $^ -o $@
+
+build-main: $(EXP_OBJ)
+	$(CXX) $(FLAGS) $^ -o main
 	
 run-experiments: 
 	@./$(BUILD_DIR)/$(EXP_TARGET) | tee ${EXP_RESULT_DIR}/last_result.txt
