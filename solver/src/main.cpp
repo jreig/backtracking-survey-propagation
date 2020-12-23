@@ -25,7 +25,7 @@ void configure_parser(cli::Parser &parser) {
 }
 
 int main(int argc, char *argv[]) {
-  // parser arguments
+  // Parse arguments
   cli::Parser parser(argc, argv);
   configure_parser(parser);
   parser.run_and_exit_if_error();
