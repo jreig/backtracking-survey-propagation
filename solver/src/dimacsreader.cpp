@@ -18,6 +18,7 @@ namespace sat {
       if (tokens[0] == "p" && tokens[1] == "cnf") {
         // p cnf <n_variables> <n_clauses>
         std::vector<int> header{std::stoi(tokens[2]), std::stoi(tokens[3])};
+        m_headerReaded = true;
         return header;
       }
 
@@ -26,12 +27,13 @@ namespace sat {
   }
 
   const std::vector<int> DimacsReader::getNextClause() {
-    std::vector<int> clause;
+    if (!m_headerReaded) throw std::runtime_error("ERROR: Header not readed in DIMACS file");
 
     std::string line;
     if (std::getline(m_file, line)) {
       const std::vector<std::string> tokens = splitString(line);
 
+      std::vector<int> clause;
       for (const std::string& token : tokens) {
         if (token != "0") clause.push_back(std::stoi(token));
       }

@@ -1,9 +1,8 @@
-#include <iostream>
-#include <string>
-
-// Project includes
 #include <cmdparser/cmdparser.hpp>
 #include <constants.hpp>
+#include <factorgraph/factorgraph.hpp>
+#include <iostream>
+#include <string>
 
 using namespace std;
 using namespace sat::constants;
@@ -47,6 +46,7 @@ int main(int argc, char *argv[]) {
   // configure application
 
   // read dimcs file and create factor graph
+  sat::FactorGraph *graph = new sat::FactorGraph(cnf_file);
 
   // run solver
 

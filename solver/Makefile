@@ -5,7 +5,7 @@ INCLUDE = -I include/ -I lib/
 BUILD_DIR = build
 SRC_DIR = src
 
-SRC	= $(wildcard $(SRC_DIR)/*.cpp)
+SRC	= $(wildcard $(SRC_DIR)/*.cpp) $(wildcard $(SRC_DIR)/**/*.cpp)
 OBJ = $(SRC:%.cpp=$(BUILD_DIR)/%.o) 
 TARGET = sp-solver
 
